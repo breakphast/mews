@@ -128,13 +128,13 @@ class SpotifyService {
             let decodedResponse = try JSONDecoder().decode(SpotifyRecommendationsResult.self, from: data)
             recommendations = decodedResponse.tracks
             
-            var trackss = [Song]()
+            var tracks = [Song]()
             for track in decodedResponse.tracks {
-                if let artist = track.artists.first?.name, let song = try await fetchCatalogSong(title: track.name, artist: track.artists.first?.name ?? "") {
-                    trackss.append(song)
+                if let artist = track.artists.first?.name, let song = try await fetchCatalogSong(title: track.name, artist: artist) {
+                    tracks.append(song)
                 }
             }
-            recommendedSongs = trackss
+            recommendedSongs = tracks
         } catch {
             print("Error fetching recommendations: \(error.localizedDescription)")
             return

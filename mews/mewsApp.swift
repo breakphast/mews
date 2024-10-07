@@ -6,31 +6,31 @@
 //
 
 import SwiftUI
+import SwiftData
+import MusicKit
 
 @main
 struct mewsApp: App {
     @State private var authService = AuthService()
     @State private var libraryService = LibraryService()
     @State private var spotifyService = SpotifyService()
+    @State private var playerViewModel = PlayerViewModel()
     
     var body: some Scene {
         WindowGroup {
             Group {
-                if authService.status != .authorized {
-                    Text("Unauthorized")
-                } else {
-                    ContentView()
-                }
+                PlayerView()
             }
+            .environment(authService)
+            .environment(libraryService)
+            .environment(spotifyService)
+            .environment(playerViewModel)
             .task {
                 Task {
                     try await authorizeAndFetch()
                 }
             }
         }
-        .environment(authService)
-        .environment(libraryService)
-        .environment(spotifyService)
     }
     
     private func authorizeAndFetch() async throws {
@@ -49,6 +49,13 @@ struct mewsApp: App {
                     await spotifyService.fetchTrackID()
                     await spotifyService.fetchArtistID()
                     await spotifyService.fetchRecommendations()
+                    
+                    if let recommendations = spotifyService.recommendedSongs, !recommendations.isEmpty, let song = recommendations.first {
+                        playerViewModel.player.queue = ApplicationMusicPlayer.Queue(for: recommendations, startingAt: song)
+                        do {
+                            try await playerViewModel.player.prepareToPlay()
+                        }
+                    }
                 }
             }
         } catch {

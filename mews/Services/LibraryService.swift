@@ -21,7 +21,7 @@ class LibraryService {
         
         do {
             let libraryResponse = try await libraryRequest.response()
-            songs = Array(libraryResponse.items)
+            songs = Array(libraryResponse.items.filter { $0.artwork != nil })
         }
     }
     
