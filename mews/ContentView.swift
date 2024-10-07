@@ -6,14 +6,25 @@
 //
 
 import SwiftUI
+import MusicKit
 
 struct ContentView: View {
+    @Environment(AuthService.self) var authService
+    @Environment(LibraryService.self) var libraryService
+    @Environment(SpotifyService.self) var spotifyService
+    @Environment(\.openURL) var openURL
+    
+    var appleSong: Song? {
+        return spotifyService.recommendedSongs?.randomElement()
+    }
+    
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            if let appleSong {
+                Text("\(appleSong.title) - \(appleSong.artistName)")
+            } else {
+                Text("No recommended songs yet.")
+            }
         }
         .padding()
     }
