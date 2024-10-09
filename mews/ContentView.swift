@@ -15,10 +15,6 @@ struct ContentView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(\.openURL) var openURL
     
-    private var song: Song? {
-        return spotifyService.recommendedSongs?.randomElement()
-    }
-    
     var body: some View {
         VStack {
             PlayerView()
