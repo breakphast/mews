@@ -15,7 +15,6 @@ struct PlayerView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(SongModelManager.self) var songModelManager
     @Environment(\.modelContext) var modelContext
-    @ObservedObject private var playerState = ApplicationMusicPlayer.shared.state
     @Query var songModels: [SongModel]
     
     private var isPlaying: Bool {
@@ -26,10 +25,6 @@ struct PlayerView: View {
         return playerViewModel.currentSong
     }
     
-    private var avSongURL: URL? {
-        return libraryService.avSongURL
-    }
-
     var body: some View {
         if albumImage != nil {
             VStack(spacing: 16) {
@@ -43,8 +38,6 @@ struct PlayerView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
                 
-                Text("\(songModelManager.unusedRecSongs.count)")
-                
                 Button("Delete") {
                     Task {
                         do {
@@ -55,7 +48,7 @@ struct PlayerView: View {
                         }
                     }
                 }
-                Button("\(isPlaying ? "Pause" : "Play")\(isPlaying ? "⏸" : "▶")") {
+                Button("\(isPlaying ? "Pause" : "Play") \(isPlaying ? "⏸" : "▶")") {
                     Task {
                         isPlaying ? playerViewModel.pauseAvPlayer() : playerViewModel.play()
                     }
@@ -68,7 +61,7 @@ struct PlayerView: View {
                 HStack {
                     Button("DISLIKE") {
                         withAnimation {
-                            swipeAction(liked: false)
+                            try? playerViewModel.swipeAction(liked: false, songs: songModelManager.unusedRecSongs)
                         }
                     }
                     .font(.title.bold())
@@ -77,7 +70,7 @@ struct PlayerView: View {
                     
                     Button("LIKE") {
                         withAnimation {
-                            swipeAction(liked: true)
+                            try? playerViewModel.swipeAction(liked: true, songs: songModelManager.unusedRecSongs)
                         }
                     }
                     .font(.title.bold())
@@ -94,38 +87,7 @@ struct PlayerView: View {
             }
         }
     }
-    
-    private func swipeAction(liked: Bool) {
-        Task {
-            if let avSong {
-                avSong.liked = liked
-                do {
-                    try? modelContext.save()
-                }
-            }
-            
-            if let recSong = songModelManager.unusedRecSongs.randomElement() {
-                let songURL = URL(string: recSong.previewURL)
-                libraryService.avSongURL = songURL
-                if let songURL = songURL {
-                    let playerItem = AVPlayerItem(url: songURL)
-                    await playerViewModel.assignCurrentSong(item: playerItem, song: recSong)
-                    playerViewModel.play()
-                }
-            }
-        }
-    }
-    
-    private func fetchArtwork(from url: URL) async -> UIImage? {
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            return UIImage(data: data)
-        } catch {
-            print("Failed to load artwork: \(error.localizedDescription)")
-            return nil
-        }
-    }
-    
+        
     var albumImage: UIImage? {
         return playerViewModel.image
     }

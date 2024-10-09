@@ -56,15 +56,18 @@ struct mewsApp: App {
         }
         
         do {
-            if songModelManager.savedSongs.isEmpty {
-                try await libraryService.fetchSongs()
+            if songModelManager.savedSongs.isEmpty || songModelManager.savedSongs.count <= 10 {
+                if let catalogSongs = try await libraryService.fetchSongs() {
+                    try await songModelManager.persistSongModels(songs: Array(catalogSongs), isCatalog: true)
+                }
             }
             
             await accessTokenManager.getAccessToken()
             
             if let token = accessTokenManager.token,
                let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedRecSongs, token: token) {
-                try await libraryService.persistSongModels(songs: recommendedSongs, isCatalog: false)
+                songModelManager.accessToken = token
+                try await songModelManager.persistSongModels(songs: recommendedSongs, isCatalog: false)
             }
             
             if let song = songModelManager.savedSongs.randomElement() {
@@ -72,7 +75,6 @@ struct mewsApp: App {
                 libraryService.avSongURL = songURL
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
-                    playerViewModel.configureAudioSession()
                     await playerViewModel.assignCurrentSong(item: playerItem, song: song)
                 }
             }

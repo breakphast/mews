@@ -146,15 +146,14 @@ class SpotifyService {
     }
     
     @MainActor
-    func getRecommendations(using songs: [SongModel], token: String) async -> [Song]? {
-        guard songs.count < 10 else { return nil }
+    func getRecommendations(using unusedSongs: [SongModel], token: String) async -> [Song]? {
+        guard unusedSongs.count < 10 else { return nil }
         
-        for song in songs.prefix(1) {
+        if let song = unusedSongs.first {
             let _ = await fetchArtistID(artist: song.artist, token: token)
             let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
             song.usedForSeed = true
             try? container.mainContext.save()
-            
         }
         if let recommendations = await fetchRecommendations(token: token) {
             var catalogSongs = [Song]()

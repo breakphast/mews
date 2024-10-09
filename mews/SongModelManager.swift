@@ -7,25 +7,31 @@
 
 import SwiftUI
 import SwiftData
+import MusicKit
 
 @Observable
 class SongModelManager {
+    let spotifyService = SpotifyService()
+    var accessToken: String?
+    
     var savedSongs = [SongModel]()
     
     var savedLibrarySongs: [SongModel] {
-        savedSongs.filter { $0.isCatalog }
+        return savedSongs.filter { $0.isCatalog }
     }
     
     var usedLibrarySongs: [SongModel] {
-        savedLibrarySongs.filter { $0.usedForSeed == true }
+        return savedLibrarySongs.filter { $0.usedForSeed == true }
     }
     
     var unusedLibrarySongs: [SongModel] {
-        savedLibrarySongs.filter { $0.usedForSeed == false }
+        let songs = savedLibrarySongs.filter { $0.usedForSeed == false }
+        print(songs.count, "Unused Library Songs Remaining")
+        return songs
     }
     
     var savedRecSongs: [SongModel] {
-        savedSongs.filter { !$0.isCatalog }
+        return savedSongs.filter { !$0.isCatalog }
     }
     
     var likedRecSongs: [SongModel] {
@@ -37,7 +43,17 @@ class SongModelManager {
     }
     
     var unusedRecSongs: [SongModel] {
-        savedRecSongs.filter { $0.liked == nil }
+        let songs = savedRecSongs.filter { $0.liked == nil }
+        print(songs.count, "Unused Rec Songs Remaining")
+        if songs.count <= 10 {
+            Task {
+                if let accessToken,
+                   let newRecSongs = await spotifyService.getRecommendations(using: songs, token: accessToken) {
+                    try await persistSongModels(songs: newRecSongs, isCatalog: false)
+                }
+            }
+        }
+        return songs
     }
     
     init() {
@@ -63,5 +79,21 @@ class SongModelManager {
         let items = try context.fetch(descriptor).filter { !$0.artwork.isEmpty }
         savedSongs = items
         return
+    }
+    
+    func persistSongModels(songs: [Song], isCatalog: Bool) async throws {
+        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        
+        for song in songs {
+            let songModel = (SongModel(song: song, isCatalog: isCatalog))
+            context.insert(songModel)
+        }
+        
+        do {
+            try context.save()
+            print("Successfuly persisted \(songs.count) songs", isCatalog)
+        } catch {
+            print("Could not persist songs")
+        }
     }
 }

@@ -18,11 +18,10 @@ class LibraryService {
     var recommendedSong: Song?
     var avSong: Song?
     var avSongURL: URL?
-    var catalogSongs = [Song]()
     
     let spotifyService = SpotifyService()
     
-    func fetchSongs() async throws {
+    func fetchSongs() async throws -> [Song]? {
         var libraryRequest = MusicLibraryRequest<Song>()
         libraryRequest.limit = 50
         
@@ -33,12 +32,14 @@ class LibraryService {
             if let song = songs.first, let catalogSong = await spotifyService.fetchCatalogSong(title: song.title, artist: song.artistName) {
                 avSong = catalogSong
             }
+            
+            var catalogSongs = [Song]()
             for song in songs {
                 if let catalogSong = await spotifyService.fetchCatalogSong(title: song.title, artist: song.artistName) {
                     catalogSongs.append(catalogSong)
                 }
             }
-            try await persistSongModels(songs: Array(catalogSongs), isCatalog: true)
+            return catalogSongs.isEmpty ? nil : catalogSongs
         }
     }
     
@@ -52,20 +53,14 @@ class LibraryService {
             print("No playlists found")
         }
     }
-    
-    func persistSongModels(songs: [Song], isCatalog: Bool) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
         
-        for song in songs {
-            let songModel = (SongModel(song: song, isCatalog: isCatalog))
-            context.insert(songModel)
-        }
-        
+    func fetchArtwork(from url: URL) async -> UIImage? {
         do {
-            try context.save()
-            print("Successfuly persisted \(songs.count) songs", isCatalog)
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return UIImage(data: data)
         } catch {
-            print("Could not persist songs")
+            print("Failed to load artwork: \(error.localizedDescription)")
+            return nil
         }
     }
 }
