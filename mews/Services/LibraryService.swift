@@ -14,25 +14,24 @@ import SwiftData
 class LibraryService {
     var songs = [Song]()
     var playlists = [Playlist]()
+    var librarySongIDs = [String]()
     
     var recommendedSong: Song?
-    var avSong: Song?
-    var avSongURL: URL?
     
     let spotifyService = SpotifyService()
     
+    init() {
+        loadSavedLibrarySongs()
+    }
+    
     func fetchSongs() async throws -> [Song]? {
         var libraryRequest = MusicLibraryRequest<Song>()
-        libraryRequest.limit = 50
+        libraryRequest.limit = 20
         
         do {
             let libraryResponse = try await libraryRequest.response()
             songs = Array(libraryResponse.items.filter { $0.artwork != nil })
-            
-            if let song = songs.first, let catalogSong = await spotifyService.fetchCatalogSong(title: song.title, artist: song.artistName) {
-                avSong = catalogSong
-            }
-            
+                        
             var catalogSongs = [Song]()
             for song in songs {
                 if let catalogSong = await spotifyService.fetchCatalogSong(title: song.title, artist: song.artistName) {
@@ -43,17 +42,6 @@ class LibraryService {
         }
     }
     
-    func fetchPlaylists() async throws {
-        let libraryRequest = MusicLibraryRequest<Playlist>()
-        
-        do {
-            let libraryResponse = try await libraryRequest.response()
-            self.playlists = Array(libraryResponse.items)
-        } catch {
-            print("No playlists found")
-        }
-    }
-        
     func fetchArtwork(from url: URL) async -> UIImage? {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
@@ -62,6 +50,19 @@ class LibraryService {
             print("Failed to load artwork: \(error.localizedDescription)")
             return nil
         }
+    }
+    
+    func saveLibrarySongIDs(songs: [Song]) {
+        let librarySongIDs = songs.map { $0.id.rawValue }
+        var currentLibrarySongIDs = UserDefaults.standard.array(forKey: "librarySongIDs") as? [String] ?? []
+        currentLibrarySongIDs.append(contentsOf: librarySongIDs)
+        
+        UserDefaults.standard.set(currentLibrarySongIDs, forKey: "librarySongIDs")
+    }
+    
+    func loadSavedLibrarySongs() {
+        let savedLibrarySongIDs = UserDefaults.standard.array(forKey: "librarySongIDs") as? [String]
+        librarySongIDs = savedLibrarySongIDs ?? []
     }
 }
   

@@ -16,43 +16,20 @@ class SongModelManager {
     
     var savedSongs = [SongModel]()
     
-    var savedLibrarySongs: [SongModel] {
-        return savedSongs.filter { $0.isCatalog }
-    }
-    
-    var usedLibrarySongs: [SongModel] {
-        return savedLibrarySongs.filter { $0.usedForSeed == true }
-    }
-    
+    var savedLibrarySongs: [SongModel] { return savedSongs.filter { $0.isCatalog } }
+    var usedLibrarySongs: [SongModel] { return savedLibrarySongs.filter { $0.usedForSeed == true } }
     var unusedLibrarySongs: [SongModel] {
         let songs = savedLibrarySongs.filter { $0.usedForSeed == false }
         print(songs.count, "Unused Library Songs Remaining")
         return songs
     }
     
-    var savedRecSongs: [SongModel] {
-        return savedSongs.filter { !$0.isCatalog }
-    }
-    
-    var likedRecSongs: [SongModel] {
-        savedRecSongs.filter { $0.liked == true }
-    }
-    
-    var dislikedRecSongs: [SongModel] {
-        savedRecSongs.filter { $0.liked == false }
-    }
-    
+    var savedRecSongs: [SongModel] { return savedSongs.filter { !$0.isCatalog } }
+    var likedRecSongs: [SongModel] { savedRecSongs.filter { $0.liked == true } }
+    var dislikedRecSongs: [SongModel] { savedRecSongs.filter { $0.liked == false } }
     var unusedRecSongs: [SongModel] {
         let songs = savedRecSongs.filter { $0.liked == nil }
         print(songs.count, "Unused Rec Songs Remaining")
-        if songs.count <= 10 {
-            Task {
-                if let accessToken,
-                   let newRecSongs = await spotifyService.getRecommendations(using: songs, token: accessToken) {
-                    try await persistSongModels(songs: newRecSongs, isCatalog: false)
-                }
-            }
-        }
         return songs
     }
     
@@ -95,5 +72,10 @@ class SongModelManager {
         } catch {
             print("Could not persist songs")
         }
+    }
+    
+    func deleteSongModel(songModel: SongModel) async throws {
+        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        context.delete(songModel)
     }
 }

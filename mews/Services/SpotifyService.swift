@@ -36,7 +36,7 @@ class SpotifyService {
                 return nil
             }
         } catch {
-            print("Error fetching catalog song: \(error)")
+            print("Error fetching catalog song: \(title)")
         }
         
         return nil
@@ -146,25 +146,60 @@ class SpotifyService {
     }
     
     @MainActor
-    func getRecommendations(using unusedSongs: [SongModel], token: String) async -> [Song]? {
-        guard unusedSongs.count < 10 else { return nil }
-        
-        if let song = unusedSongs.first {
+    func getRecommendations(using unusedLibSongs: [SongModel], token: String) async -> [Song]? {
+        if let song = unusedLibSongs.first {
             let _ = await fetchArtistID(artist: song.artist, token: token)
             let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
             song.usedForSeed = true
             try? container.mainContext.save()
         }
+        
         if let recommendations = await fetchRecommendations(token: token) {
             var catalogSongs = [Song]()
+            
             for song in recommendations {
+                guard await !songInLibrary(song: song) else {
+                    continue
+                }
+                
                 if let catalogSong = await fetchCatalogSong(title: song.title, artist: song.artistName) {
                     catalogSongs.append(catalogSong)
                 }
             }
+            print("Fetched \(catalogSongs.count) songs from Spotify catalog")
             return catalogSongs
         }
         return nil
+    }
+    
+    func songInLibrary(song: Song) async -> Bool {
+        var libraryRequest = MusicLibraryRequest<Song>()
+        libraryRequest.limit = 5
+        libraryRequest.filter(matching: \.title.localizedLowercase, contains: song.title.lowercased())
+        libraryRequest.filter(matching: \.artistName?.localizedLowercase, contains: song.artistName.lowercased())
+        
+        do {
+            if let libraryResponse = try? await libraryRequest.response(),
+            let song = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
+                return true
+            }
+        }
+        return false
+    }
+    
+    func songInLibrary(songModel: SongModel) async -> Bool {
+        var libraryRequest = MusicLibraryRequest<Song>()
+        libraryRequest.limit = 5
+        libraryRequest.filter(matching: \.title, equalTo: songModel.title.lowercased())
+        
+        
+        do {
+            if let libraryResponse = try? await libraryRequest.response(),
+            let song = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
+                return true
+            }
+        }
+        return false
     }
 }
 

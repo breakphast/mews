@@ -16,7 +16,6 @@ import SwiftData
 final class PlayerViewModel {
     let avPlayer = AVPlayer()
     var isAvPlaying = false
-    var avSongURL: URL?
     var currentSong: SongModel?
     var image: UIImage?
     
@@ -58,7 +57,6 @@ final class PlayerViewModel {
             
             if let recSong = songs.randomElement() {
                 let songURL = URL(string: recSong.previewURL)
-                avSongURL = songURL
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
                     await assignCurrentSong(item: playerItem, song: recSong)

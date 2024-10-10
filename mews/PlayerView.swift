@@ -30,7 +30,8 @@ struct PlayerView: View {
             VStack(spacing: 16) {
                 albumElement
                     .transition(.push(from: .trailing))
-                Text("\(songModelManager.savedSongs.count)")
+                Text("Remaining Rec Songs: \(songModelManager.unusedRecSongs.count)")
+                    .bold()
                 VStack(alignment: .leading) {
                     Text(avSong?.title ?? "")
                     Text(avSong?.artist ?? "")
@@ -48,6 +49,7 @@ struct PlayerView: View {
                         }
                     }
                 }
+                
                 Button("\(isPlaying ? "Pause" : "Play") \(isPlaying ? "⏸" : "▶")") {
                     Task {
                         isPlaying ? playerViewModel.pauseAvPlayer() : playerViewModel.play()

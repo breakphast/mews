@@ -56,30 +56,37 @@ struct mewsApp: App {
         }
         
         do {
-            if songModelManager.savedSongs.isEmpty || songModelManager.savedSongs.count <= 10 {
+            if songModelManager.savedSongs.isEmpty || songModelManager.savedLibrarySongs.count <= 10 {
                 if let catalogSongs = try await libraryService.fetchSongs() {
                     try await songModelManager.persistSongModels(songs: Array(catalogSongs), isCatalog: true)
                 }
             }
             
             await accessTokenManager.getAccessToken()
+            songModelManager.accessToken = accessTokenManager.token
             
-            if let token = accessTokenManager.token,
-               let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedRecSongs, token: token) {
-                songModelManager.accessToken = token
-                try await songModelManager.persistSongModels(songs: recommendedSongs, isCatalog: false)
-            }
-            
-            if let song = songModelManager.savedSongs.randomElement() {
+            if let song = songModelManager.unusedRecSongs.randomElement() {
                 let songURL = URL(string: song.previewURL)
-                libraryService.avSongURL = songURL
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
                     await playerViewModel.assignCurrentSong(item: playerItem, song: song)
                 }
             }
+            
+            if let token = accessTokenManager.token, songModelManager.unusedRecSongs.count <= 10,
+               let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedLibrarySongs, token: token) {
+                let filteredRecSongs = recommendedSongs.filter {
+                    // only inlcude songs that are not in user's Apple Music library
+                    !libraryService.librarySongIDs.contains($0.id.rawValue)
+                }
+                try await songModelManager.persistSongModels(songs: filteredRecSongs, isCatalog: false)
+            }
         } catch {
             print("Failed to fetch songs from library")
         }
     }
+}
+
+func deleteUserDefaults(forKey key: String) {
+    UserDefaults.standard.removeObject(forKey: key)
 }
