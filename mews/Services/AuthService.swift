@@ -25,14 +25,12 @@ class AuthService {
         }
     }
     
-    func authorizeAction() async throws {
+    func authorizeAction() async {
         switch self.status {
         case .notDetermined:
-            Task {
-                let status = await MusicAuthorization.request()
-                await update(status: status)
-                return
-            }
+            let status = await MusicAuthorization.request()
+            await update(status: status)
+            return
         case .denied:
             if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
                 

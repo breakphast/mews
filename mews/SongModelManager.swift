@@ -20,7 +20,6 @@ class SongModelManager {
     var usedLibrarySongs: [SongModel] { return savedLibrarySongs.filter { $0.usedForSeed == true } }
     var unusedLibrarySongs: [SongModel] {
         let songs = savedLibrarySongs.filter { $0.usedForSeed == false }
-        print(songs.count, "Unused Library Songs Remaining")
         return songs
     }
     
@@ -29,7 +28,6 @@ class SongModelManager {
     var dislikedRecSongs: [SongModel] { savedRecSongs.filter { $0.liked == false } }
     var unusedRecSongs: [SongModel] {
         let songs = savedRecSongs.filter { $0.liked == nil }
-        print(songs.count, "Unused Rec Songs Remaining")
         return songs
     }
     
@@ -56,22 +54,6 @@ class SongModelManager {
         let items = try context.fetch(descriptor).filter { !$0.artwork.isEmpty }
         savedSongs = items
         return
-    }
-    
-    func persistSongModels(songs: [Song], isCatalog: Bool) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
-        
-        for song in songs {
-            let songModel = (SongModel(song: song, isCatalog: isCatalog))
-            context.insert(songModel)
-        }
-        
-        do {
-            try context.save()
-            print("Successfuly persisted \(songs.count) songs", isCatalog)
-        } catch {
-            print("Could not persist songs")
-        }
     }
     
     func deleteSongModel(songModel: SongModel) async throws {

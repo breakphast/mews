@@ -12,9 +12,6 @@ import SwiftData
 
 @Observable
 class SpotifyService {
-    let clientID = "a8ba7d7bab8d4e58861664629aee4d95"
-    let clientSecret = "97734b3651af45e4bb685a2c709e7dc1"
-    
     var artistIDs = [String]()
     var trackIDs = [String]()
     
@@ -32,7 +29,6 @@ class SpotifyService {
             if let catalogSong = searchResponse.songs.first(where: { $0.artistName.lowercased() == artist.lowercased() }) {
                 return catalogSong
             } else {
-                print("No matching song found in the Apple Music catalog.")
                 return nil
             }
         } catch {
@@ -105,6 +101,35 @@ class SpotifyService {
         return nil
     }
     
+    @MainActor
+    func getRecommendations(using unusedLibSongs: [SongModel], token: String) async -> [Song]? {
+        var catalogSongs = [Song]()
+        var unusedSongsIterator = unusedLibSongs.makeIterator()
+        
+        while catalogSongs.count < 10, let song = unusedSongsIterator.next() {
+            // Fetch artist and track ID for the current unused song
+            let _ = await fetchArtistID(artist: song.artist, token: token)
+            let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
+            song.usedForSeed = true
+            try? container.mainContext.save()
+            
+            if let recommendations = await fetchRecommendations(token: token) {
+                for song in recommendations {
+                    guard await !songInLibrary(song: song) else { continue }
+                    
+                    if let catalogSong = await fetchCatalogSong(title: song.title, artist: song.artistName) {
+                        catalogSongs.append(catalogSong)
+                        
+                        if catalogSongs.count >= 10 { break }
+                    }
+                }
+            }
+        }
+        
+        print("Fetched \(catalogSongs.count) songs from Spotify catalog")
+        return catalogSongs.isEmpty ? nil : catalogSongs
+    }
+    
     func fetchRecommendations(token: String) async -> [Song]? {
         guard !trackIDs.isEmpty || !artistIDs.isEmpty else {
             return nil
@@ -145,42 +170,14 @@ class SpotifyService {
         }
     }
     
-    @MainActor
-    func getRecommendations(using unusedLibSongs: [SongModel], token: String) async -> [Song]? {
-        if let song = unusedLibSongs.first {
-            let _ = await fetchArtistID(artist: song.artist, token: token)
-            let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
-            song.usedForSeed = true
-            try? container.mainContext.save()
-        }
-        
-        if let recommendations = await fetchRecommendations(token: token) {
-            var catalogSongs = [Song]()
-            
-            for song in recommendations {
-                guard await !songInLibrary(song: song) else {
-                    continue
-                }
-                
-                if let catalogSong = await fetchCatalogSong(title: song.title, artist: song.artistName) {
-                    catalogSongs.append(catalogSong)
-                }
-            }
-            print("Fetched \(catalogSongs.count) songs from Spotify catalog")
-            return catalogSongs
-        }
-        return nil
-    }
-    
     func songInLibrary(song: Song) async -> Bool {
         var libraryRequest = MusicLibraryRequest<Song>()
         libraryRequest.limit = 5
-        libraryRequest.filter(matching: \.title.localizedLowercase, contains: song.title.lowercased())
-        libraryRequest.filter(matching: \.artistName?.localizedLowercase, contains: song.artistName.lowercased())
+        libraryRequest.filter(matching: \.title, equalTo: song.title)
         
         do {
             if let libraryResponse = try? await libraryRequest.response(),
-            let song = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
+               let _ = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
                 return true
             }
         }
@@ -192,14 +189,44 @@ class SpotifyService {
         libraryRequest.limit = 5
         libraryRequest.filter(matching: \.title, equalTo: songModel.title.lowercased())
         
-        
         do {
             if let libraryResponse = try? await libraryRequest.response(),
-            let song = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
+            let _ = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
                 return true
             }
         }
         return false
+    }
+    
+    func persistSongModels(songs: [Song], isCatalog: Bool) async throws {
+        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        
+        for song in songs {
+            let songModel = (SongModel(song: song, isCatalog: isCatalog))
+            context.insert(songModel)
+        }
+        
+        do {
+            try context.save()
+            print("Successfuly persisted \(songs.count) \(isCatalog ? "library" : "recommended") songs")
+        } catch {
+            print("Could not persist songs")
+        }
+    }
+    
+    func lowRecsTrigger(songs: [SongModel], token: String, libSongIDs: [String]) async {
+        let count = songs.count
+        if count <= 10 {
+            if let recommendedSongs = await getRecommendations(using: songs, token: token) {
+                let filteredRecSongs = recommendedSongs.filter {
+                    // only inlcude songs that are not in user's Apple Music library
+                    !libSongIDs.contains($0.id.rawValue)
+                }
+                try? await persistSongModels(songs: filteredRecSongs, isCatalog: false)
+                return
+            }
+        }
+        return
     }
 }
 

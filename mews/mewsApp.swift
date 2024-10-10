@@ -50,19 +50,18 @@ struct mewsApp: App {
     }
     
     private func authorizeAndFetch() async throws {
-        guard authService.status == .authorized else {
-            try? await authService.authorizeAction()
-            return
+        if authService.status != .authorized {
+            await authService.authorizeAction()
         }
         
         do {
             if songModelManager.savedSongs.isEmpty || songModelManager.savedLibrarySongs.count <= 10 {
                 if let catalogSongs = try await libraryService.fetchSongs() {
-                    try await songModelManager.persistSongModels(songs: Array(catalogSongs), isCatalog: true)
+                    try await spotifyService.persistSongModels(songs: Array(catalogSongs), isCatalog: true)
+                    try await songModelManager.fetchItems()
                 }
             }
             
-            await accessTokenManager.getAccessToken()
             songModelManager.accessToken = accessTokenManager.token
             
             if let song = songModelManager.unusedRecSongs.randomElement() {
@@ -79,7 +78,8 @@ struct mewsApp: App {
                     // only inlcude songs that are not in user's Apple Music library
                     !libraryService.librarySongIDs.contains($0.id.rawValue)
                 }
-                try await songModelManager.persistSongModels(songs: filteredRecSongs, isCatalog: false)
+                try await spotifyService.persistSongModels(songs: filteredRecSongs, isCatalog: false)
+                try await songModelManager.fetchItems()
             }
         } catch {
             print("Failed to fetch songs from library")
