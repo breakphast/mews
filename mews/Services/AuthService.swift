@@ -32,7 +32,7 @@ class AuthService {
             await update(status: status)
             return
         case .denied:
-            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            if let _ = URL(string: UIApplication.openSettingsURLString) {
                 
             }
         default:

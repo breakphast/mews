@@ -9,7 +9,7 @@ import SwiftUI
 import Observation
 
 @Observable
-class AccessTokenManager {
+class SpotifyTokenManager {
     let clientID = "a8ba7d7bab8d4e58861664629aee4d95"
     let clientSecret = "97734b3651af45e4bb685a2c709e7dc1"
     

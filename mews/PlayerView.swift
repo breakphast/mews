@@ -15,7 +15,7 @@ struct PlayerView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(SongModelManager.self) var songModelManager
     @Environment(SpotifyService.self) var spotifyService
-    @Environment(AccessTokenManager.self) var accessTokenManager
+    @Environment(SpotifyTokenManager.self) var spotifyTokenManager
     @Environment(\.modelContext) var modelContext
     @Query var songModels: [SongModel]
     
@@ -90,7 +90,7 @@ struct PlayerView: View {
                 }
             }
             .onChange(of: unusedRecSongs.count) { _, newCount in
-                guard let token = accessTokenManager.token else { return }
+                guard let token = spotifyTokenManager.token else { return }
                 
                 if newCount <= 10 {
                     let libSongIDs = libraryService.librarySongIDs

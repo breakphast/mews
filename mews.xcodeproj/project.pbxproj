@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		3E1CCCF82CB8C6350025B4EA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3EDEB1BC2CB040EB00E712D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3EDEB1C32CB040EB00E712D2;
+			remoteInfo = mews;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		3E1CCCF42CB8C6350025B4EA /* mewsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mewsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3EDEB1C42CB040EB00E712D2 /* mews.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mews.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -21,6 +32,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3E1CCCF52CB8C6350025B4EA /* mewsTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = mewsTests;
+			sourceTree = "<group>";
+		};
 		3EDEB1C62CB040EB00E712D2 /* mews */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -32,6 +48,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3E1CCCF12CB8C6350025B4EA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3EDEB1C12CB040EB00E712D2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				3EDEB1C62CB040EB00E712D2 /* mews */,
+				3E1CCCF52CB8C6350025B4EA /* mewsTests */,
 				3EDEB1C52CB040EB00E712D2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				3EDEB1C42CB040EB00E712D2 /* mews.app */,
+				3E1CCCF42CB8C6350025B4EA /* mewsTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,6 +86,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		3E1CCCF32CB8C6350025B4EA /* mewsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3E1CCCFC2CB8C6350025B4EA /* Build configuration list for PBXNativeTarget "mewsTests" */;
+			buildPhases = (
+				3E1CCCF02CB8C6350025B4EA /* Sources */,
+				3E1CCCF12CB8C6350025B4EA /* Frameworks */,
+				3E1CCCF22CB8C6350025B4EA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3E1CCCF92CB8C6350025B4EA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3E1CCCF52CB8C6350025B4EA /* mewsTests */,
+			);
+			name = mewsTests;
+			packageProductDependencies = (
+			);
+			productName = mewsTests;
+			productReference = 3E1CCCF42CB8C6350025B4EA /* mewsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		3EDEB1C32CB040EB00E712D2 /* mews */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3EDEB1D22CB040ED00E712D2 /* Build configuration list for PBXNativeTarget "mews" */;
@@ -93,6 +141,10 @@
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					3E1CCCF32CB8C6350025B4EA = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 3EDEB1C32CB040EB00E712D2;
+					};
 					3EDEB1C32CB040EB00E712D2 = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -113,11 +165,19 @@
 			projectRoot = "";
 			targets = (
 				3EDEB1C32CB040EB00E712D2 /* mews */,
+				3E1CCCF32CB8C6350025B4EA /* mewsTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3E1CCCF22CB8C6350025B4EA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3EDEB1C22CB040EB00E712D2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +188,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3E1CCCF02CB8C6350025B4EA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3EDEB1C02CB040EB00E712D2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,7 +204,54 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		3E1CCCF92CB8C6350025B4EA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3EDEB1C32CB040EB00E712D2 /* mews */;
+			targetProxy = 3E1CCCF82CB8C6350025B4EA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		3E1CCCFA2CB8C6350025B4EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = G9RPYMS2PA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.devsmond.mewsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[arch=*]" = IS_TESTING;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/mews.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/mews";
+			};
+			name = Debug;
+		};
+		3E1CCCFB2CB8C6350025B4EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = G9RPYMS2PA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.devsmond.mewsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/mews.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/mews";
+			};
+			name = Release;
+		};
 		3EDEB1D02CB040ED00E712D2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -326,6 +440,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		3E1CCCFC2CB8C6350025B4EA /* Build configuration list for PBXNativeTarget "mewsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3E1CCCFA2CB8C6350025B4EA /* Debug */,
+				3E1CCCFB2CB8C6350025B4EA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		3EDEB1BF2CB040EB00E712D2 /* Build configuration list for PBXProject "mews" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

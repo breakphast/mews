@@ -17,7 +17,7 @@ struct mewsApp: App {
     @State private var spotifyService = SpotifyService()
     @State private var playerViewModel = PlayerViewModel()
     @State private var songModelManager = SongModelManager()
-    @State private var accessTokenManager = AccessTokenManager()
+    @State private var spotifyTokenManager = SpotifyTokenManager()
     
     @Environment(\.modelContext) var modelContext
     @Query var songModels: [SongModel]
@@ -39,7 +39,7 @@ struct mewsApp: App {
             .environment(spotifyService)
             .environment(playerViewModel)
             .environment(songModelManager)
-            .environment(accessTokenManager)
+            .environment(spotifyTokenManager)
             .task {
                 Task {
                     try await authorizeAndFetch()
@@ -62,7 +62,7 @@ struct mewsApp: App {
                 }
             }
             
-            songModelManager.accessToken = accessTokenManager.token
+            songModelManager.accessToken = spotifyTokenManager.token
             
             if let song = songModelManager.unusedRecSongs.randomElement() {
                 let songURL = URL(string: song.previewURL)
@@ -72,7 +72,7 @@ struct mewsApp: App {
                 }
             }
             
-            if let token = accessTokenManager.token, songModelManager.unusedRecSongs.count <= 10,
+            if let token = spotifyTokenManager.token, songModelManager.unusedRecSongs.count <= 10,
                let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedLibrarySongs, token: token) {
                 let filteredRecSongs = recommendedSongs.filter {
                     // only inlcude songs that are not in user's Apple Music library
