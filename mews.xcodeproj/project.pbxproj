@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3E411D6D2CB982AE00F56CB2 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 3E411D6C2CB982AE00F56CB2 /* Lottie */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3E1CCCF82CB8C6350025B4EA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -59,6 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3E411D6D2CB982AE00F56CB2 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -126,6 +131,7 @@
 			);
 			name = mews;
 			packageProductDependencies = (
+				3E411D6C2CB982AE00F56CB2 /* Lottie */,
 			);
 			productName = mews;
 			productReference = 3EDEB1C42CB040EB00E712D2 /* mews.app */;
@@ -159,6 +165,9 @@
 			);
 			mainGroup = 3EDEB1BB2CB040EB00E712D2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3E411D692CB9813200F56CB2 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3EDEB1C52CB040EB00E712D2 /* Products */;
 			projectDirPath = "";
@@ -468,6 +477,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3E411D692CB9813200F56CB2 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3E411D6C2CB982AE00F56CB2 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3E411D692CB9813200F56CB2 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3EDEB1BC2CB040EB00E712D2 /* Project object */;
 }

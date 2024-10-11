@@ -66,7 +66,7 @@ class SpotifyTokenManager {
                 saveTokenToUserDefaults()
                 return
             } else {
-                print("Error: Status code \(String(describing: (response as? HTTPURLResponse)?.statusCode))")
+                print("Token Error: Status code \(String(describing: (response as? HTTPURLResponse)?.statusCode))")
                 return
             }
         } catch {

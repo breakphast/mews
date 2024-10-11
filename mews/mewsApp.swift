@@ -73,12 +73,8 @@ struct mewsApp: App {
             }
             
             if let token = spotifyTokenManager.token, songModelManager.unusedRecSongs.count <= 10,
-               let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedLibrarySongs, token: token) {
-                let filteredRecSongs = recommendedSongs.filter {
-                    // only inlcude songs that are not in user's Apple Music library
-                    !libraryService.librarySongIDs.contains($0.id.rawValue)
-                }
-                try await spotifyService.persistSongModels(songs: filteredRecSongs, isCatalog: false)
+               let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedLibrarySongs, recSongs: songModelManager.savedRecSongs, token: token) {
+                try await spotifyService.persistSongModels(songs: recommendedSongs, isCatalog: false)
                 try await songModelManager.fetchItems()
             }
         } catch {

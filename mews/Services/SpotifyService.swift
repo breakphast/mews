@@ -126,7 +126,7 @@ class SpotifyService {
     }
     
     @MainActor
-    func getRecommendations(using unusedLibSongs: [SongModel], token: String) async -> [Song]? {
+    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], token: String) async -> [Song]? {
         var catalogSongs = [Song]()
         var unusedSongsIterator = unusedLibSongs.makeIterator()
         
@@ -140,11 +140,10 @@ class SpotifyService {
             if let recommendations = await fetchRecommendations(token: token) {
                 for song in recommendations {
                     guard await !songInLibrary(song: song) else { continue }
+                    guard await !songInRecs(song: song, recSongs: recSongs) else { continue }
                     
                     if let catalogSong = await fetchCatalogSong(title: song.title, artist: song.artistName) {
                         catalogSongs.append(catalogSong)
-                        
-                        if catalogSongs.count >= 10 { break }
                     }
                 }
             }
@@ -170,12 +169,11 @@ class SpotifyService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-                print("Error: Status code \(String(describing: (response as? HTTPURLResponse)?.statusCode))")
+                print("Recs Error: Status code \(String(describing: (response as? HTTPURLResponse)?.statusCode))")
                 return nil
             }
 
@@ -208,6 +206,10 @@ class SpotifyService {
         return false
     }
     
+    func songInRecs(song: Song, recSongs: [SongModel]) async -> Bool {
+        return recSongs.contains(where: { $0.id == song.id.rawValue })
+    }
+    
     func songInLibrary(songModel: SongModel) async -> Bool {
         var libraryRequest = MusicLibraryRequest<Song>()
         libraryRequest.limit = 5
@@ -238,15 +240,14 @@ class SpotifyService {
         }
     }
     
-    func lowRecsTrigger(songs: [SongModel], token: String, libSongIDs: [String]) async {
+    func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], token: String) async {
         let count = songs.count
-        if count <= 10 {
-            if let recommendedSongs = await getRecommendations(using: songs, token: token) {
-                let filteredRecSongs = recommendedSongs.filter {
-                    // only inlcude songs that are not in user's Apple Music library
-                    !libSongIDs.contains($0.id.rawValue)
-                }
-                try? await persistSongModels(songs: filteredRecSongs, isCatalog: false)
+        if count < 10 {
+            artistIDs.removeAll()
+            trackIDs.removeAll()
+            
+            if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, token: token) {
+                try? await persistSongModels(songs: recommendedSongs, isCatalog: false)
                 return
             }
         }

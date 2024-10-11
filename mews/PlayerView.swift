@@ -92,22 +92,22 @@ struct PlayerView: View {
             .onChange(of: unusedRecSongs.count) { _, newCount in
                 guard let token = spotifyTokenManager.token else { return }
                 
-                if newCount <= 10 {
-                    let libSongIDs = libraryService.librarySongIDs
-                    Task { await
+                if newCount < 10 {
+                    Task {
+                        await
                         spotifyService.lowRecsTrigger(
                         songs: unusedRecSongs,
-                        token: token,
-                        libSongIDs: libSongIDs)
+                        recSongs: songModelManager.savedRecSongs,
+                        token: token)
+                        
+                        try await songModelManager.fetchItems()
                     }
                 }
             }
         } else {
             ZStack {
-                Color.pink.opacity(0.7).ignoresSafeArea()
-                ProgressView()
-                    .tint(.yellow)
-                    .bold()
+                Color.pink.opacity(0.5).ignoresSafeArea()
+                LoadingView()
             }
             .onChange(of: unusedRecSongs.count) { _, _ in
                 if let song = unusedRecSongs.randomElement(),
