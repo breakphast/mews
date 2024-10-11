@@ -31,9 +31,12 @@ class SongModelManager {
         return songs
     }
     
+    var savedDislikedSongs: [(title: String, url: String)]?
+    
     init() {
         Task {
             try await fetchItems()
+            savedDislikedSongs = getDislikedSongs()
         }
     }
     
@@ -59,5 +62,24 @@ class SongModelManager {
     func deleteSongModel(songModel: SongModel) async throws {
         let context = ModelContext(try ModelContainer(for: SongModel.self))
         context.delete(songModel)
+        
+        saveDislikedSong(title: songModel.title, url: songModel.catalogURL)
+        savedDislikedSongs = getDislikedSongs()
+    }
+    
+    func saveDislikedSong(title: String, url: String) {
+        let songString = "\(title),\(url)"
+        var dislikedSongs = UserDefaults.standard.stringArray(forKey: "dislikedSongs") ?? []
+        dislikedSongs.append(songString)
+        UserDefaults.standard.set(dislikedSongs, forKey: "dislikedSongs")
+    }
+    
+    func getDislikedSongs() -> [(title: String, url: String)] {
+        let dislikedSongs = UserDefaults.standard.stringArray(forKey: "dislikedSongs") ?? []
+        return dislikedSongs.compactMap { entry in
+            let components = entry.split(separator: ",", maxSplits: 1).map(String.init)
+            guard components.count == 2 else { return nil }
+            return (title: components[0], url: components[1])
+        }
     }
 }

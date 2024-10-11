@@ -16,6 +16,7 @@ class SongModel {
     var artist: String = ""
     var artwork: String = ""
     var previewURL: String = ""
+    var catalogURL: String = ""
     var isCatalog: Bool
     var liked: Bool? = nil
     var usedForSeed = false
@@ -25,6 +26,7 @@ class SongModel {
         title = song.title
         artist = song.artistName
         artwork = song.artwork?.url(width: 600, height: 600)?.absoluteString ?? ""
+        catalogURL = song.url?.absoluteString ?? ""
         previewURL = song.previewAssets?.first?.url?.absoluteString ?? ""
         self.isCatalog = isCatalog
     }

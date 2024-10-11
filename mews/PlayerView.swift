@@ -32,7 +32,7 @@ struct PlayerView: View {
     }
     
     var body: some View {
-        if let albumImage {
+        if albumImage != nil {
             VStack(spacing: 16) {
                 albumElement
                     .transition(.push(from: .trailing))
@@ -70,6 +70,9 @@ struct PlayerView: View {
                     Button("DISLIKE") {
                         withAnimation {
                             try? playerViewModel.swipeAction(liked: false, songs: unusedRecSongs)
+                            if let avSong {
+                                songModelManager.saveDislikedSong(title: avSong.title, url: avSong.catalogURL)
+                            }
                         }
                     }
                     .font(.title.bold())

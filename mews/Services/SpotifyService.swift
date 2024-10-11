@@ -23,12 +23,36 @@ class SpotifyService {
     @MainActor
     func fetchCatalogSong(title: String, artist: String) async -> Song? {
         let searchRequest = MusicCatalogSearchRequest(term: title.lowercased(), types: [Song.self])
-        
         do {
             let searchResponse = try await searchRequest.response()
             if let catalogSong = searchResponse.songs.first(where: { $0.artistName.lowercased() == artist.lowercased() }) {
                 return catalogSong
             } else {
+                print("Artists do not match")
+                return nil
+            }
+        } catch {
+            print("Error fetching catalog song: \(title)")
+        }
+        
+        return nil
+    }
+    
+    func fetchCatalogSong(title: String, url: String) async -> Song? {
+        let startTime = Date() // Start timing
+        
+        let searchRequest = MusicCatalogSearchRequest(term: title.lowercased(), types: [Song.self])
+        do {
+            let searchResponse = try await searchRequest.response()
+            
+            // Calculate elapsed time
+            let elapsedTime = Date().timeIntervalSince(startTime)
+            print("Search completed in \(elapsedTime) seconds")
+            
+            if let catalogSong = searchResponse.songs.first(where: { $0.url?.absoluteString == url }) {
+                return catalogSong
+            } else {
+                print("URLs do not match")
                 return nil
             }
         } catch {
