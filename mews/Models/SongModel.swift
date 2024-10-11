@@ -31,3 +31,13 @@ class SongModel {
         self.isCatalog = isCatalog
     }
 }
+
+enum SongModelFilter: CaseIterable {
+    case library
+    case usedLibrary
+    case unusedLibrary
+    case recommended
+    case likedRecommended
+    case dislikedRecommended
+    case unusedRecommended
+}

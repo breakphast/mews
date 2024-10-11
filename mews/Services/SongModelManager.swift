@@ -16,20 +16,14 @@ class SongModelManager {
     
     var savedSongs = [SongModel]()
     
-    var savedLibrarySongs: [SongModel] { return savedSongs.filter { $0.isCatalog } }
-    var usedLibrarySongs: [SongModel] { return savedLibrarySongs.filter { $0.usedForSeed == true } }
-    var unusedLibrarySongs: [SongModel] {
-        let songs = savedLibrarySongs.filter { $0.usedForSeed == false }
-        return songs
-    }
+    var savedLibrarySongs: [SongModel] { savedSongs.library }
+    var usedLibrarySongs: [SongModel] { savedSongs.usedLibrary }
+    var unusedLibrarySongs: [SongModel] { savedSongs.unusedLibrary }
     
-    var savedRecSongs: [SongModel] { return savedSongs.filter { !$0.isCatalog } }
-    var likedRecSongs: [SongModel] { savedRecSongs.filter { $0.liked == true } }
-    var dislikedRecSongs: [SongModel] { savedRecSongs.filter { $0.liked == false } }
-    var unusedRecSongs: [SongModel] {
-        let songs = savedRecSongs.filter { $0.liked == nil }
-        return songs
-    }
+    var savedRecSongs: [SongModel] { savedSongs.recommended }
+    var likedRecSongs: [SongModel] { savedSongs.likedRecommended }
+    var dislikedRecSongs: [SongModel] { savedSongs.dislikedRecommended }
+    var unusedRecSongs: [SongModel] { savedSongs.unusedRecommended }
     
     var savedDislikedSongs: [(title: String, url: String)]?
     

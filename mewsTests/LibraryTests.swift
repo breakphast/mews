@@ -21,7 +21,7 @@ final class LibraryTests {
             #expect(!songs.isEmpty)
             #expect(songs.compactMap { $0.playCount }.isEmpty)
             
-            let albumImage = await PlayerViewModel().fetchArtwork(from: songURL)
+            let albumImage = await libraryService.fetchArtwork(from: songURL)
             #expect(albumImage != nil)
         }
     }
