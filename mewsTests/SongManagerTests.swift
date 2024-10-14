@@ -25,10 +25,6 @@ class SongManagerTests {
         switch filter {
         case .library:
             #expect(!filteredSongs.contains(where: { !$0.isCatalog }))
-        case .usedLibrary:
-            #expect(!filteredSongs.contains(where: { !$0.usedForSeed }))
-        case .unusedLibrary:
-            #expect(!filteredSongs.contains(where: { $0.usedForSeed }))
         case .recommended:
             #expect(!filteredSongs.contains(where: { $0.isCatalog }))
         case .unusedRecommended:

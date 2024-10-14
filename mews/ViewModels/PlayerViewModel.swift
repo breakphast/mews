@@ -37,31 +37,34 @@ final class PlayerViewModel {
     }
     
     func assignCurrentSong(item: AVPlayerItem, song: SongModel) async {
-        avPlayer.replaceCurrentItem(with: item)
-        currentSong = song
         if let url = URL(string: song.artwork) {
             image = await LibraryService().fetchArtwork(from: url)
+            avPlayer.replaceCurrentItem(with: item)
+            currentSong = song
+            play()
         }
     }
     
+    @MainActor
     func swipeAction(liked: Bool, songs: [SongModel]) throws {
         let context = ModelContext(try ModelContainer(for: SongModel.self))
-        
+        guard let currentSong else { return }
         Task {
-            if let currentSong {
-                currentSong.liked = liked
-                do {
-                    try context.save()
-                }
+            currentSong.liked = liked
+            do {
+                try context.save()
             }
             
-            if let recSong = songs.randomElement() {
+            if let recSong = songs.filter({ $0.id != currentSong.id }).randomElement() {
                 let songURL = URL(string: recSong.previewURL)
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
                     await assignCurrentSong(item: playerItem, song: recSong)
-                    play()
                 }
+            }
+            
+            if liked, let song = await SpotifyService().fetchCatalogSong(title: currentSong.title, url: currentSong.catalogURL) {
+                try await MusicLibrary.shared.add(song)
             }
         }
     }

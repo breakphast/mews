@@ -45,17 +45,6 @@ struct PlayerView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
                 
-                Button("Delete All SongModels") {
-                    Task {
-                        do {
-                            for model in songModels.prefix(upTo: songModels.count) {
-                                modelContext.delete(model)
-                            }
-                            try modelContext.save()
-                        }
-                    }
-                }
-                
                 Button("\(isPlaying ? "Pause" : "Play") \(isPlaying ? "⏸" : "▶")") {
                     Task {
                         isPlaying ? playerViewModel.pauseAvPlayer() : playerViewModel.play()
@@ -91,14 +80,13 @@ struct PlayerView: View {
             }
             .onChange(of: unusedRecSongs.count) { _, newCount in
                 guard let token = spotifyTokenManager.token else { return }
-                
                 if newCount < 10 {
                     Task {
                         await
                         spotifyService.lowRecsTrigger(
-                        songs: unusedRecSongs,
-                        recSongs: songModelManager.savedRecSongs,
-                        token: token)
+                            songs: songModelManager.savedLibrarySongs,
+                            recSongs: songModelManager.savedRecSongs,
+                            token: token)
                         
                         try await songModelManager.fetchItems()
                     }

@@ -16,7 +16,7 @@ final class LibraryTests {
     
     #if !targetEnvironment(simulator)
     @Test func getSongsFromLibrary() async throws {
-        if let songs = try await libraryService.fetchSongs(),
+        if let songs = try await libraryService.fetchLibrarySongs(),
            let songURL = songs.first?.artwork?.url(width: 50, height: 50) {
             #expect(!songs.isEmpty)
             #expect(songs.compactMap { $0.playCount }.isEmpty)

@@ -22,13 +22,6 @@ struct mewsApp: App {
     @Environment(\.modelContext) var modelContext
     @Query var songModels: [SongModel]
     
-    var unusedRecSongs: [SongModel] {
-        guard songModelManager.savedLibrarySongs.count > 0 else {
-            return []
-        }
-        return Array(songModelManager.unusedLibrarySongs.prefix(1))
-    }
-    
     var body: some Scene {
         WindowGroup {
             Group {
@@ -53,32 +46,35 @@ struct mewsApp: App {
         if authService.status != .authorized {
             await authService.authorizeAction()
         }
-        
-        do {
-            if songModelManager.savedSongs.isEmpty || songModelManager.savedLibrarySongs.count <= 10 {
-                if let catalogSongs = try await libraryService.fetchSongs() {
-                    try await spotifyService.persistSongModels(songs: Array(catalogSongs), isCatalog: true)
+        if songModelManager.savedSongs.isEmpty || songModelManager.savedRecSongs.count <= 10 {
+            if let recommendations = await libraryService.getHeavyRotation() {
+                var catalogSongs = [Song]()
+                // find library rotation songs in catalog and return
+                for recommendation in recommendations {
+                    if let catalogSong = await spotifyService.fetchCatalogSong(title: recommendation.name, artist: recommendation.artistName) {
+                        print("Found song in Apple Catalog: \(catalogSong.artistName) - \(catalogSong.title)")
+                        if !songModelManager.savedLibrarySongs.contains(where: { $0.id == catalogSong.id.rawValue }) {
+                            catalogSongs.append(catalogSong)
+                        }
+                    }
+                }
+                // save catalog songs
+                try await spotifyService.persistSongModels(songs: catalogSongs, isCatalog: true)
+                try await songModelManager.fetchItems()
+                
+                if let song = songModelManager.unusedRecSongs.randomElement() {
+                    let songURL = URL(string: song.previewURL)
+                    if let songURL = songURL {
+                        let playerItem = AVPlayerItem(url: songURL)
+                        await playerViewModel.assignCurrentSong(item: playerItem, song: song)
+                    }
+                }
+                // use catalog songs to get spotify recs and persist non catalog
+                if let token = spotifyTokenManager.token, let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.savedLibrarySongs, recSongs: songModelManager.savedRecSongs, token: token) {
+                    try await spotifyService.persistSongModels(songs: recommendedSongs, isCatalog: false)
                     try await songModelManager.fetchItems()
                 }
             }
-            
-            songModelManager.accessToken = spotifyTokenManager.token
-            
-            if let song = songModelManager.unusedRecSongs.randomElement() {
-                let songURL = URL(string: song.previewURL)
-                if let songURL = songURL {
-                    let playerItem = AVPlayerItem(url: songURL)
-                    await playerViewModel.assignCurrentSong(item: playerItem, song: song)
-                }
-            }
-            
-            if let token = spotifyTokenManager.token, songModelManager.unusedRecSongs.count <= 10,
-               let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.unusedLibrarySongs, recSongs: songModelManager.savedRecSongs, token: token) {
-                try await spotifyService.persistSongModels(songs: recommendedSongs, isCatalog: false)
-                try await songModelManager.fetchItems()
-            }
-        } catch {
-            print("Failed to fetch songs from library")
         }
     }
 }

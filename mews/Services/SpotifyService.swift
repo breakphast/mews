@@ -25,17 +25,18 @@ class SpotifyService {
         let searchRequest = MusicCatalogSearchRequest(term: title.lowercased(), types: [Song.self])
         do {
             let searchResponse = try await searchRequest.response()
-            if let catalogSong = searchResponse.songs.first(where: { $0.artistName.lowercased() == artist.lowercased() }) {
-                return catalogSong
-            } else {
-                print("Artists do not match")
-                return nil
+            for catalogSong in searchResponse.songs {
+                if catalogSong.artistName.lowercased() == artist.lowercased() {
+                    return catalogSong // Artist match found
+                }
             }
+            // If loop completes without finding a match
+            print("No matching artist found for \(title)")
+            return nil
         } catch {
-            print("Error fetching catalog song: \(title)")
+            print("Error fetching catalog song: \(title), \(error)")
+            return nil
         }
-        
-        return nil
     }
     
     func fetchCatalogSong(title: String, url: String) async -> Song? {
@@ -127,14 +128,13 @@ class SpotifyService {
     
     @MainActor
     func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], token: String) async -> [Song]? {
-        var catalogSongs = [Song]()
-        var unusedSongsIterator = unusedLibSongs.makeIterator()
+        var recommendedSongs = [Song]()
         
-        while catalogSongs.count < 10, let song = unusedSongsIterator.next() {
+        while recommendedSongs.count < 10, let song = unusedLibSongs.randomElement() {
+            print("Using song \(song.title) for recommendations.")
             // Fetch artist and track ID for the current unused song
             let _ = await fetchArtistID(artist: song.artist, token: token)
             let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
-            song.usedForSeed = true
             try? container.mainContext.save()
             
             if let recommendations = await fetchRecommendations(token: token) {
@@ -143,14 +143,12 @@ class SpotifyService {
                     guard await !songInRecs(song: song, recSongs: recSongs) else { continue }
                     
                     if let catalogSong = await fetchCatalogSong(title: song.title, artist: song.artistName) {
-                        catalogSongs.append(catalogSong)
+                        recommendedSongs.append(catalogSong)
                     }
                 }
             }
         }
-        
-        print("Fetched \(catalogSongs.count) songs from Spotify catalog")
-        return catalogSongs.isEmpty ? nil : catalogSongs
+        return recommendedSongs.isEmpty ? nil : recommendedSongs
     }
     
     func fetchRecommendations(token: String) async -> [Song]? {
@@ -198,9 +196,10 @@ class SpotifyService {
         libraryRequest.filter(matching: \.title, equalTo: song.title)
         
         do {
-            if let libraryResponse = try? await libraryRequest.response(),
-               let _ = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
-                return true
+            if let libraryResponse = try? await libraryRequest.response() {
+                if let _ = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
+                 return true
+             }
             }
         }
         return false

@@ -19,7 +19,6 @@ class SongModel {
     var catalogURL: String = ""
     var isCatalog: Bool
     var liked: Bool? = nil
-    var usedForSeed = false
     
     init(song: Song, isCatalog: Bool) {
         id = song.id.rawValue
@@ -34,8 +33,6 @@ class SongModel {
 
 enum SongModelFilter: CaseIterable {
     case library
-    case usedLibrary
-    case unusedLibrary
     case recommended
     case likedRecommended
     case dislikedRecommended
