@@ -57,8 +57,8 @@ struct PlayerView: View {
                 
                 HStack {
                     Button("DISLIKE") {
-                        withAnimation {
-                            try? playerViewModel.swipeAction(liked: false, songs: unusedRecSongs)
+                        Task {
+                            try await playerViewModel.swipeAction(liked: false, recSongs: unusedRecSongs)
                             if let avSong {
                                 songModelManager.saveDislikedSong(title: avSong.title, url: avSong.catalogURL)
                             }
@@ -69,8 +69,8 @@ struct PlayerView: View {
                     .tint(.orange)
                     
                     Button("LIKE") {
-                        withAnimation {
-                            try? playerViewModel.swipeAction(liked: true, songs: unusedRecSongs)
+                        Task {
+                            try await playerViewModel.swipeAction(liked: true, recSongs: unusedRecSongs)
                         }
                     }
                     .font(.title.bold())

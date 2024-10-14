@@ -36,37 +36,40 @@ final class PlayerViewModel {
         }
     }
     
+    @MainActor
     func assignCurrentSong(item: AVPlayerItem, song: SongModel) async {
         if let url = URL(string: song.artwork) {
             image = await LibraryService().fetchArtwork(from: url)
             avPlayer.replaceCurrentItem(with: item)
-            currentSong = song
-            play()
+            withAnimation {
+                currentSong = song
+                play()
+            }
         }
     }
     
     @MainActor
-    func swipeAction(liked: Bool, songs: [SongModel]) throws {
+    func swipeAction(liked: Bool, recSongs: [SongModel]) async throws {
         let context = ModelContext(try ModelContainer(for: SongModel.self))
         guard let currentSong else { return }
-        Task {
-            currentSong.liked = liked
-            do {
-                try context.save()
-            }
-            
-            if let recSong = songs.filter({ $0.id != currentSong.id }).randomElement() {
-                let songURL = URL(string: recSong.previewURL)
-                if let songURL = songURL {
-                    let playerItem = AVPlayerItem(url: songURL)
-                    await assignCurrentSong(item: playerItem, song: recSong)
-                }
-            }
-            
-            if liked, let song = await SpotifyService().fetchCatalogSong(title: currentSong.title, url: currentSong.catalogURL) {
-                try await MusicLibrary.shared.add(song)
+        currentSong.liked = liked
+        do {
+            try context.save()
+        }
+        
+        if let recSong = recSongs.filter({ $0.id != currentSong.id }).randomElement() {
+            let songURL = URL(string: recSong.previewURL)
+            if let songURL = songURL {
+                let playerItem = AVPlayerItem(url: songURL)
+                await assignCurrentSong(item: playerItem, song: recSong)
             }
         }
+        
+        if liked, let song = await SpotifyService().fetchCatalogSong(title: currentSong.title, url: currentSong.catalogURL) {
+            try await MusicLibrary.shared.add(song)
+        }
+        
+        return
     }
     
     func play() {
