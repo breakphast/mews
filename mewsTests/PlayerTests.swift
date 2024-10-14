@@ -43,7 +43,7 @@ final class PlayerTests {
         if let url = URL(string: song.catalogURL) {
             let item = AVPlayerItem(url: url)
             await playerViewModel.assignCurrentSong(item: item, song: song)
-            try? await playerViewModel.swipeAction(liked: like, recSongs: songManager.unusedRecSongs)
+            try? await playerViewModel.swipeAction(liked: like, unusedRecSongs: songManager.unusedRecSongs)
             guard let liked = song.liked else { return }
             
             #expect(liked == (like ? true : false))

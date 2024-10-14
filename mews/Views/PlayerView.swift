@@ -18,6 +18,7 @@ struct PlayerView: View {
     @Environment(SpotifyTokenManager.self) var spotifyTokenManager
     @Environment(\.modelContext) var modelContext
     @Query var songModels: [SongModel]
+    @Environment(ControlsService.self) var mediaControls
     
     private var isPlaying: Bool {
         return playerViewModel.isAvPlaying
@@ -58,7 +59,7 @@ struct PlayerView: View {
                 HStack {
                     Button("DISLIKE") {
                         Task {
-                            try await playerViewModel.swipeAction(liked: false, recSongs: unusedRecSongs)
+                            try await playerViewModel.swipeAction(liked: false, unusedRecSongs: unusedRecSongs)
                             if let avSong {
                                 songModelManager.saveDislikedSong(title: avSong.title, url: avSong.catalogURL)
                             }
@@ -70,7 +71,7 @@ struct PlayerView: View {
                     
                     Button("LIKE") {
                         Task {
-                            try await playerViewModel.swipeAction(liked: true, recSongs: unusedRecSongs)
+                            try await playerViewModel.swipeAction(liked: true, unusedRecSongs: unusedRecSongs)
                         }
                     }
                     .font(.title.bold())

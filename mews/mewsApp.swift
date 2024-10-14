@@ -33,6 +33,7 @@ struct mewsApp: App {
             .environment(playerViewModel)
             .environment(songModelManager)
             .environment(spotifyTokenManager)
+            .environment(ControlsService(playerViewModel, recSongs: songModelManager.unusedRecSongs))
             .task {
                 Task {
                     try await authorizeAndFetch()
