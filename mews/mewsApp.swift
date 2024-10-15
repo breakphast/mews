@@ -47,7 +47,7 @@ struct mewsApp: App {
         if authService.status != .authorized {
             await authService.authorizeAction()
         }
-        if songModelManager.savedSongs.isEmpty || songModelManager.savedRecSongs.count <= 10 {
+        if songModelManager.savedSongs.isEmpty || songModelManager.unusedRecSongs.count <= 10 {
             if let recommendations = await libraryService.getHeavyRotation() {
                 var catalogSongs = [Song]()
                 // find library rotation songs in catalog and return
@@ -74,6 +74,14 @@ struct mewsApp: App {
                 if let token = spotifyTokenManager.token, let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.savedLibrarySongs, recSongs: songModelManager.savedRecSongs, token: token) {
                     try await spotifyService.persistSongModels(songs: recommendedSongs, isCatalog: false)
                     try await songModelManager.fetchItems()
+                }
+            }
+        } else {
+            if let song = songModelManager.unusedRecSongs.randomElement() {
+                let songURL = URL(string: song.previewURL)
+                if let songURL = songURL {
+                    let playerItem = AVPlayerItem(url: songURL)
+                    await playerViewModel.assignCurrentSong(item: playerItem, song: song)
                 }
             }
         }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3E411D6D2CB982AE00F56CB2 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 3E411D6C2CB982AE00F56CB2 /* Lottie */; };
+		3EBCA41F2CBEC3BB00BE5DA1 /* SongView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBCA41E2CBEC3BB00BE5DA1 /* SongView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -22,6 +23,7 @@
 
 /* Begin PBXFileReference section */
 		3E1CCCF42CB8C6350025B4EA /* mewsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mewsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3EBCA41E2CBEC3BB00BE5DA1 /* SongView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongView.swift; sourceTree = "<group>"; };
 		3EDEB1C42CB040EB00E712D2 /* mews.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mews.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -73,6 +75,7 @@
 		3EDEB1BB2CB040EB00E712D2 = {
 			isa = PBXGroup;
 			children = (
+				3EBCA41E2CBEC3BB00BE5DA1 /* SongView.swift */,
 				3EDEB1C62CB040EB00E712D2 /* mews */,
 				3E1CCCF52CB8C6350025B4EA /* mewsTests */,
 				3EDEB1C52CB040EB00E712D2 /* Products */,
@@ -208,6 +211,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3EBCA41F2CBEC3BB00BE5DA1 /* SongView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

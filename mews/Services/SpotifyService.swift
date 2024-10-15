@@ -130,9 +130,11 @@ class SpotifyService {
     func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], token: String) async -> [Song]? {
         var recommendedSongs = [Song]()
         
-        while recommendedSongs.count < 10, let song = unusedLibSongs.randomElement() {
+        while recommendedSongs.count < 15, let song = unusedLibSongs.randomElement() {
             print("Using song \(song.title) for recommendations.")
             // Fetch artist and track ID for the current unused song
+            artistIDs.removeAll()
+            trackIDs.removeAll()
             let _ = await fetchArtistID(artist: song.artist, token: token)
             let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
             try? container.mainContext.save()

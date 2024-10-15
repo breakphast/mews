@@ -40,12 +40,12 @@ final class PlayerViewModel {
     @MainActor
     func assignCurrentSong(item: AVPlayerItem, song: SongModel) async {
         if let url = URL(string: song.artwork) {
-            image = await LibraryService().fetchArtwork(from: url)
+            let artwork = await LibraryService().fetchArtwork(from: url)
             avPlayer.replaceCurrentItem(with: item)
-            withAnimation {
-                currentSong = song
-                play()
-            }
+            image = nil
+            image = artwork
+            currentSong = song
+            play()
         }
     }
     

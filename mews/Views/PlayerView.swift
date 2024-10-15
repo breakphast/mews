@@ -19,6 +19,8 @@ struct PlayerView: View {
     @Environment(\.modelContext) var modelContext
     @Query var songModels: [SongModel]
     @Environment(ControlsService.self) var mediaControls
+    @Environment(\.colorScheme) var colorScheme
+    @State private var haptic = false
     
     private var isPlaying: Bool {
         return playerViewModel.isAvPlaying
@@ -34,102 +36,123 @@ struct PlayerView: View {
     
     var body: some View {
         if albumImage != nil {
-            VStack(spacing: 16) {
-                albumElement
-                    .transition(.push(from: .trailing))
-                Text("Remaining Rec Songs: \(unusedRecSongs.count)")
-                    .bold()
-                VStack(alignment: .leading) {
-                    Text(avSong?.title ?? "")
-                    Text(avSong?.artist ?? "")
-                }
-                .font(.title3)
-                .fontWeight(.semibold)
-                
-                Button("\(isPlaying ? "Pause" : "Play") \(isPlaying ? "⏸" : "▶")") {
-                    Task {
-                        isPlaying ? playerViewModel.pauseAvPlayer() : playerViewModel.play()
-                    }
-                }
-                .font(.title.bold())
-                .buttonStyle(.borderedProminent)
-                .tint(.pink)
-                .padding(.top)
-                
-                HStack {
-                    Button("DISLIKE") {
-                        Task {
-                            try await playerViewModel.swipeAction(liked: false, unusedRecSongs: unusedRecSongs)
-                            if let avSong {
-                                songModelManager.saveDislikedSong(title: avSong.title, url: avSong.catalogURL)
-                            }
-                        }
-                    }
-                    .font(.title.bold())
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
-                    
-                    Button("LIKE") {
-                        Task {
-                            try await playerViewModel.swipeAction(liked: true, unusedRecSongs: unusedRecSongs)
-                        }
-                    }
-                    .font(.title.bold())
-                    .buttonStyle(.borderedProminent)
-                    .tint(.yellow)
-                }
+            VStack(spacing: 24) {
+                navBar
+                Spacer()
+                SongView()
+                Spacer()
+                buttons
             }
+            .padding()
             .onChange(of: unusedRecSongs.count) { _, newCount in
-                guard let token = spotifyTokenManager.token else { return }
-                if newCount < 10 {
-                    Task {
-                        await
-                        spotifyService.lowRecsTrigger(
-                            songs: songModelManager.savedLibrarySongs,
-                            recSongs: songModelManager.savedRecSongs,
-                            token: token)
-                        
-                        try await songModelManager.fetchItems()
-                    }
-                }
+                lowRecsTrigger(count: newCount)
             }
         } else {
             ZStack {
-                Color.pink.opacity(0.5).ignoresSafeArea()
-                LoadingView()
+                ProgressView()
+                    .tint(.appleMusic)
+                    .bold()
             }
-            .onChange(of: unusedRecSongs.count) { _, _ in
-                if let song = unusedRecSongs.randomElement(),
-                   let url = URL(string: song.previewURL) {
-                    Task {
-                        let playerItem = AVPlayerItem(url: url)
-                        if albumImage == nil {
-                            await playerViewModel.assignCurrentSong(item: playerItem, song: song)
-                        }
-                    }
+            .onChange(of: unusedRecSongs.count) { oldCount, _ in
+                assignNewSong(count: oldCount)
+            }
+        }
+    }
+    
+    private func assignNewSong(count: Int) {
+        guard count != 0 else { return }
+        withAnimation {
+            playerViewModel.image = nil
+        }
+        if let song = unusedRecSongs.randomElement(),
+           let url = URL(string: song.previewURL) {
+            Task {
+                let playerItem = AVPlayerItem(url: url)
+                if albumImage == nil {
+                    await playerViewModel.assignCurrentSong(item: playerItem, song: song)
                 }
             }
         }
     }
+    
+    // MARK: - Functions
+    
+    private func lowRecsTrigger(count: Int) {
+        guard let token = spotifyTokenManager.token else { return }
+        if count < 10 {
+            Task {
+                await
+                spotifyService.lowRecsTrigger(
+                    songs: songModelManager.savedLibrarySongs,
+                    recSongs: songModelManager.savedRecSongs,
+                    token: token)
+                
+                try await songModelManager.fetchItems()
+            }
+        }
+    }
+    
+    private var navBar: some View {
+        HStack {
+            Image(systemName: "line.3.horizontal.circle")
+            Spacer()
+            Text("Mews")
+            Spacer()
+            Image(systemName: "clock.arrow.circlepath")
+        }
+        .font(.title.bold())
+        .fontDesign(.rounded)
+    }
+    
+    // MARK: - View Properties
         
     var albumImage: UIImage? {
         return playerViewModel.image
     }
-    private var albumElement: some View {
-        VStack(spacing: 40) {
-            if let albumImage {
-                Image(uiImage: albumImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: UIScreen.main.bounds.width * 0.75)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .shadow(radius: 5)
-            } else {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .frame(width: UIScreen.main.bounds.width * 0.75, height: 200)
-                    .shadow(radius: 5)
-            }
+    private var buttons: some View {
+        HStack {
+            button(liked: false, icon: "xmark", color: .gray, textColor: .white)
+            Spacer()
+            button(icon: "wand.and.stars", color: .white, textColor: .appleMusic)
+                .offset(y: -16)
+            Spacer()
+            button(liked: true, icon: "heart.fill", color: .appleMusic, textColor: .white)
         }
+        .bold()
+        .padding()
+    }
+    
+    private func button(liked: Bool? = nil, icon: String, color: Color, textColor: Color) -> some View {
+        Button {
+            haptic.toggle()
+            if let liked {
+                Task {
+                    try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: unusedRecSongs)
+                    if !liked {
+                        if let avSong {
+                            songModelManager.saveDislikedSong(title: avSong.title, url: avSong.catalogURL)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: icon)
+                .font(.largeTitle)
+                .foregroundStyle(textColor)
+                .padding()
+                .background {
+                    Circle()
+                        .fill(color.opacity(0.8))
+                        .frame(width: 88, height: 88)
+                        .overlay {
+                            Circle()
+                                .stroke(color.opacity(0.8), lineWidth: 2)
+                                .frame(width: 88, height: 88)
+                        }
+                        .shadow(color: (colorScheme == .dark ? Color.white : Color.black).opacity(0.3), radius: 6, x: 2, y: 4)
+                }
+        }
+        .sensoryFeedback((liked ?? true) ? .impact(weight: .heavy) : .impact(weight: .light), trigger: haptic)
     }
 }
 

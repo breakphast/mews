@@ -30,6 +30,29 @@ class LibraryService {
         try? await MusicLibrary.shared.add(song)
     }
     
+    func addSongToDeletePlaylist(song: Song, playlist: Playlist) async {
+        let _ = try? await MusicLibrary.shared.add(song, to: playlist)
+    }
+    
+    func createAppleMusicPlaylist(songs: [Song]) async {
+        let library = MusicLibrary.shared
+        if let playlist = try? await library.createPlaylist(name: "Songs To Delete (mews)") {
+            for song in songs {
+                let _ = try? await library.add(song, to: playlist)
+            }
+        }
+    }
+    
+    func getDeletePlaylist() async -> Playlist? {
+        let libraryRequest = MusicLibraryRequest<Playlist>()
+        
+        let libraryResponse = try? await libraryRequest.response()
+        if let playlist = libraryResponse?.items.first(where: { $0.name == "Songs To Delete (mews)" }) {
+            return playlist
+        }
+        return nil
+    }
+    
     func getHeavyRotation() async -> [(artistName: String, name: String, id: String)]? {
         do {
             // Step 1: Ensure user authorization for Apple Music
