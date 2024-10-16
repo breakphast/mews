@@ -26,23 +26,6 @@ class LibraryService {
         }
     }
     
-    func addSongToLibrary(song: Song) async {
-        try? await MusicLibrary.shared.add(song)
-    }
-    
-    func addSongToDeletePlaylist(song: Song, playlist: Playlist) async {
-        let _ = try? await MusicLibrary.shared.add(song, to: playlist)
-    }
-    
-    func createAppleMusicPlaylist(songs: [Song]) async {
-        let library = MusicLibrary.shared
-        if let playlist = try? await library.createPlaylist(name: "Songs To Delete (mews)") {
-            for song in songs {
-                let _ = try? await library.add(song, to: playlist)
-            }
-        }
-    }
-    
     func getDeletePlaylist() async -> Playlist? {
         let libraryRequest = MusicLibraryRequest<Playlist>()
         
@@ -119,7 +102,7 @@ class LibraryService {
             return nil
         }
     }
-    var developerToken = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkY3NjNRQjQ4TUwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJHOVJQWU1TMlBBIiwiaWF0IjoxNzI3OTkwNjI1LCJleHAiOjE3NDM1NDI2MjV9.PX9Zzu6CtlH52ieCZG7S_w-q6YnINJg6JL5mrYuJ7lSuMpOBBxR3mTxZ1wdGiDjdU-zEJ6qxB-rDk04PxiPdvQ"
+    let developerToken = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkY3NjNRQjQ4TUwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJHOVJQWU1TMlBBIiwiaWF0IjoxNzI3OTkwNjI1LCJleHAiOjE3NDM1NDI2MjV9.PX9Zzu6CtlH52ieCZG7S_w-q6YnINJg6JL5mrYuJ7lSuMpOBBxR3mTxZ1wdGiDjdU-zEJ6qxB-rDk04PxiPdvQ"
     
     func fetchLibrarySongs() async throws -> [Song]? {
         var libraryRequest = MusicLibraryRequest<Song>()
@@ -136,6 +119,23 @@ class LibraryService {
                 }
             }
             return catalogSongs.isEmpty ? nil : catalogSongs
+        }
+    }
+    
+    func addSongToLibrary(song: Song) async {
+        try? await MusicLibrary.shared.add(song)
+    }
+    
+    func addSongToDeletePlaylist(song: Song, playlist: Playlist) async {
+        let _ = try? await MusicLibrary.shared.add(song, to: playlist)
+    }
+    
+    func createAppleMusicPlaylist(songs: [Song]) async {
+        let library = MusicLibrary.shared
+        if let playlist = try? await library.createPlaylist(name: "Songs To Delete (mews)") {
+            for song in songs {
+                let _ = try? await library.add(song, to: playlist)
+            }
         }
     }
 }

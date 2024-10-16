@@ -49,18 +49,18 @@ struct mewsApp: App {
         }
         if songModelManager.savedSongs.isEmpty || songModelManager.unusedRecSongs.count <= 10 {
             if let recommendations = await libraryService.getHeavyRotation() {
-                var catalogSongs = [Song]()
+                var librarySongs = [Song]()
                 // find library rotation songs in catalog and return
                 for recommendation in recommendations {
                     if let catalogSong = await spotifyService.fetchCatalogSong(title: recommendation.name, artist: recommendation.artistName) {
                         print("Found song in Apple Catalog: \(catalogSong.artistName) - \(catalogSong.title)")
                         if !songModelManager.savedLibrarySongs.contains(where: { $0.id == catalogSong.id.rawValue }) {
-                            catalogSongs.append(catalogSong)
+                            librarySongs.append(catalogSong)
                         }
                     }
                 }
-                // save catalog songs
-                try await spotifyService.persistSongModels(songs: catalogSongs, isCatalog: true)
+                // save library songs
+                try await spotifyService.persistLibrarySongs(songs: librarySongs)
                 try await songModelManager.fetchItems()
                 
                 if let song = songModelManager.unusedRecSongs.randomElement() {
@@ -71,8 +71,13 @@ struct mewsApp: App {
                     }
                 }
                 // use catalog songs to get spotify recs and persist non catalog
-                if let token = spotifyTokenManager.token, let recommendedSongs = await spotifyService.getRecommendations(using: songModelManager.savedLibrarySongs, recSongs: songModelManager.savedRecSongs, token: token) {
-                    try await spotifyService.persistSongModels(songs: recommendedSongs, isCatalog: false)
+                if let token = spotifyTokenManager.token,
+                   let recommendedSongs = await spotifyService.getRecommendations(
+                    using: songModelManager.savedLibrarySongs,
+                    recSongs: songModelManager.savedRecSongs,
+                    token: token
+                   ) {
+                    try await spotifyService.persistRecommendations(songs: recommendedSongs)
                     try await songModelManager.fetchItems()
                 }
             }

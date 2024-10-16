@@ -35,15 +35,18 @@ struct PlayerView: View {
     }
     
     var body: some View {
-        if albumImage != nil {
+        if albumImage != nil && avSong != nil {
             VStack(spacing: 24) {
                 navBar
                 Spacer()
                 SongView()
                 Spacer()
-                buttons
+                if playerViewModel.initalLoad {
+                    buttons
+                }
             }
             .padding()
+            .background(Color.oreo.ignoresSafeArea())
             .onChange(of: unusedRecSongs.count) { _, newCount in
                 lowRecsTrigger(count: newCount)
             }
@@ -60,7 +63,8 @@ struct PlayerView: View {
     }
     
     private func assignNewSong(count: Int) {
-        guard count != 0 else { return }
+        guard !playerViewModel.initalLoad else { return }
+        
         withAnimation {
             playerViewModel.image = nil
         }
@@ -149,7 +153,7 @@ struct PlayerView: View {
                                 .stroke(color.opacity(0.8), lineWidth: 2)
                                 .frame(width: 88, height: 88)
                         }
-                        .shadow(color: (colorScheme == .dark ? Color.white : Color.black).opacity(0.3), radius: 6, x: 2, y: 4)
+                        .shadow(color: .snow.opacity(colorScheme == .light ? 0.3 : 0.05), radius: 6, x: 2, y: 4)
                 }
         }
         .sensoryFeedback((liked ?? true) ? .impact(weight: .heavy) : .impact(weight: .light), trigger: haptic)

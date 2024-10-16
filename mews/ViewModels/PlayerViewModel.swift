@@ -19,6 +19,8 @@ final class PlayerViewModel {
     var isAvPlaying = false
     var currentSong: SongModel?
     var image: UIImage?
+    var swipeDirection: Edge = .leading
+    var initalLoad = false
     
     init() {
         configureAudioSession()
@@ -52,6 +54,7 @@ final class PlayerViewModel {
     @MainActor
     func swipeAction(liked: Bool, unusedRecSongs: [SongModel]) async throws {
         let context = ModelContext(try ModelContainer(for: SongModel.self))
+        swipeDirection = liked ? .trailing : .leading
         guard let currentSong else { return }
         currentSong.liked = liked
         do {

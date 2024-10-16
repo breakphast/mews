@@ -14,6 +14,7 @@ import SwiftData
 class SpotifyService {
     var artistIDs = [String]()
     var trackIDs = [String]()
+    var genres = [String]()
     
     var container: ModelContainer {
         let container = try! ModelContainer(for: SongModel.self)
@@ -27,7 +28,7 @@ class SpotifyService {
             let searchResponse = try await searchRequest.response()
             for catalogSong in searchResponse.songs {
                 if catalogSong.artistName.lowercased() == artist.lowercased() {
-                    return catalogSong // Artist match found
+                    return catalogSong
                 }
             }
             // If loop completes without finding a match
@@ -127,29 +128,52 @@ class SpotifyService {
     }
     
     @MainActor
-    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], token: String) async -> [Song]? {
-        var recommendedSongs = [Song]()
+    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], token: String) async -> [String: [Song]]? {
+        var recommendedSongs = [String: [Song]]()
         
-        while recommendedSongs.count < 15, let song = unusedLibSongs.randomElement() {
+        // Loop over each song in the unused library songs
+        for song in unusedLibSongs {
             print("Using song \(song.title) for recommendations.")
-            // Fetch artist and track ID for the current unused song
+            
+            // Fetch artist and track IDs for the current song
             artistIDs.removeAll()
             trackIDs.removeAll()
             let _ = await fetchArtistID(artist: song.artist, token: token)
             let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
-            try? container.mainContext.save()
             
             if let recommendations = await fetchRecommendations(token: token) {
-                for song in recommendations {
-                    guard await !songInLibrary(song: song) else { continue }
-                    guard await !songInRecs(song: song, recSongs: recSongs) else { continue }
+                var indieRecommendations = [Song]()
+                
+                // Collect at least 10 unique catalog songs for the current recommendation
+                for recSong in recommendations {
+                    guard await !songInLibrary(song: recSong) else { continue }
+                    guard await !songInRecs(song: recSong, recSongs: recSongs) else { continue }
                     
-                    if let catalogSong = await fetchCatalogSong(title: song.title, artist: song.artistName) {
-                        recommendedSongs.append(catalogSong)
+                    while indieRecommendations.count < 10 {
+                        if let catalogSong = await fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
+                            indieRecommendations.append(catalogSong)
+                        }
                     }
+                }
+                
+                // Append indieRecommendations to the current song ID in recommendedSongs
+                if recommendedSongs[song.id] != nil {
+                    recommendedSongs[song.id]?.append(contentsOf: indieRecommendations)
+                } else {
+                    recommendedSongs[song.id] = indieRecommendations
+                }
+                
+                print("Added recommendations for \(song.title), total recommendations now: \(recommendedSongs.values.flatMap({ $0 }).count)")
+                
+                // After processing each song, check if we've reached the target of 50 recommendations
+                if recommendedSongs.values.flatMap({ $0 }).count >= 50 {
+                    print("Reached 50 recommendations. Stopping further processing.")
+                    return recommendedSongs
                 }
             }
         }
+        
+        print("Returned \(recommendedSongs.values.flatMap({ $0 }).count) recommendations")
         return recommendedSongs.isEmpty ? nil : recommendedSongs
     }
     
@@ -225,17 +249,36 @@ class SpotifyService {
         return false
     }
     
-    func persistSongModels(songs: [Song], isCatalog: Bool) async throws {
+    func persistLibrarySongs(songs: [Song]) async throws {
         let context = ModelContext(try ModelContainer(for: SongModel.self))
         
         for song in songs {
-            let songModel = (SongModel(song: song, isCatalog: isCatalog))
+            let songModel = (SongModel(song: song, isCatalog: true))
             context.insert(songModel)
         }
         
         do {
             try context.save()
-            print("Successfuly persisted \(songs.count) \(isCatalog ? "library" : "recommended") songs")
+            print("Successfuly persisted \(songs.count) \("library") songs")
+        } catch {
+            print("Could not persist songs")
+        }
+    }
+    
+    func persistRecommendations(songs: [String: [Song]]) async throws {
+        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        
+        for (songID, songArray) in songs {
+            for song in songArray {
+                let songModel = SongModel(song: song, isCatalog: false)
+                songModel.recSong = songID
+                context.insert(songModel)
+            }
+        }
+        
+        do {
+            try context.save()
+            print("Successfully persisted \(songs.values.flatMap({ $0 }).count) recommended songs")
         } catch {
             print("Could not persist songs")
         }
@@ -248,7 +291,7 @@ class SpotifyService {
             trackIDs.removeAll()
             
             if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, token: token) {
-                try? await persistSongModels(songs: recommendedSongs, isCatalog: false)
+                try? await persistRecommendations(songs: recommendedSongs)
                 return
             }
         }

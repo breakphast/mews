@@ -14,17 +14,22 @@ class SongModel {
     var id: String = ""
     var title: String = ""
     var artist: String = ""
+    var album: String? = ""
     var artwork: String = ""
+    var genre: String? = ""
     var previewURL: String = ""
     var catalogURL: String = ""
     var isCatalog: Bool
     var liked: Bool? = nil
+    var recSong: String = ""
     
     init(song: Song, isCatalog: Bool) {
         id = song.id.rawValue
         title = song.title
         artist = song.artistName
+        album = song.albumTitle
         artwork = song.artwork?.url(width: 600, height: 600)?.absoluteString ?? ""
+        genre = song.genres?.first?.name
         catalogURL = song.url?.absoluteString ?? ""
         previewURL = song.previewAssets?.first?.url?.absoluteString ?? ""
         self.isCatalog = isCatalog
