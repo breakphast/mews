@@ -23,16 +23,16 @@ class SpotifyService {
     
     @MainActor
     func fetchCatalogSong(title: String, artist: String) async -> Song? {
-        let searchRequest = MusicCatalogSearchRequest(term: title.lowercased(), types: [Song.self])
+        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
         do {
             let searchResponse = try await searchRequest.response()
             for catalogSong in searchResponse.songs {
-                if catalogSong.artistName.lowercased() == artist.lowercased() {
+                if catalogSong.artistName.lowercased().contains(artist.lowercased()) {
                     return catalogSong
+                } else {
+                    print("No matching artist found for \(title) ... ", "\(artist) vs \(catalogSong.artistName)")
                 }
             }
-            // If loop completes without finding a match
-            print("No matching artist found for \(title)")
             return nil
         } catch {
             print("Error fetching catalog song: \(title), \(error)")
@@ -40,16 +40,10 @@ class SpotifyService {
         }
     }
     
-    func fetchCatalogSong(title: String, url: String) async -> Song? {
-        let startTime = Date() // Start timing
-        
-        let searchRequest = MusicCatalogSearchRequest(term: title.lowercased(), types: [Song.self])
+    func fetchCatalogSong(title: String, artist: String, url: String) async -> Song? {
+        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
         do {
             let searchResponse = try await searchRequest.response()
-            
-            // Calculate elapsed time
-            let elapsedTime = Date().timeIntervalSince(startTime)
-            print("Search completed in \(elapsedTime) seconds")
             
             if let catalogSong = searchResponse.songs.first(where: { $0.url?.absoluteString == url }) {
                 return catalogSong
@@ -128,7 +122,7 @@ class SpotifyService {
     }
     
     @MainActor
-    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], token: String) async -> [String: [Song]]? {
+    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async -> [String: [Song]]? {
         var recommendedSongs = [String: [Song]]()
         
         // Loop over each song in the unused library songs
@@ -145,17 +139,19 @@ class SpotifyService {
                 var indieRecommendations = [Song]()
                 
                 // Collect at least 10 unique catalog songs for the current recommendation
-                for recSong in recommendations {
-                    guard await !songInLibrary(song: recSong) else { continue }
-                    guard await !songInRecs(song: recSong, recSongs: recSongs) else { continue }
-                    
-                    while indieRecommendations.count < 10 {
+                while indieRecommendations.count < 10 {
+                    for recSong in recommendations {
+                        guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
+                            continue
+                        }
+                        guard await !songInLibrary(song: recSong) else { continue }
+                        guard await !songInRecs(song: recSong, recSongs: recSongs) else { continue }
+                        
                         if let catalogSong = await fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
                             indieRecommendations.append(catalogSong)
                         }
                     }
                 }
-                
                 // Append indieRecommendations to the current song ID in recommendedSongs
                 if recommendedSongs[song.id] != nil {
                     recommendedSongs[song.id]?.append(contentsOf: indieRecommendations)
@@ -218,14 +214,14 @@ class SpotifyService {
     
     func songInLibrary(song: Song) async -> Bool {
         var libraryRequest = MusicLibraryRequest<Song>()
-        libraryRequest.limit = 5
-        libraryRequest.filter(matching: \.title, equalTo: song.title)
+        libraryRequest.limit = 20
+        libraryRequest.filter(text: song.title)
         
         do {
             if let libraryResponse = try? await libraryRequest.response() {
-                if let _ = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
-                 return true
-             }
+                if let _ = Array(libraryResponse.items.filter { $0.artwork != nil && $0.artistName.lowercased().contains(song.artistName.lowercased()) }).first {
+                    return true
+                }
             }
         }
         return false
@@ -237,13 +233,14 @@ class SpotifyService {
     
     func songInLibrary(songModel: SongModel) async -> Bool {
         var libraryRequest = MusicLibraryRequest<Song>()
-        libraryRequest.limit = 5
-        libraryRequest.filter(matching: \.title, equalTo: songModel.title.lowercased())
+        libraryRequest.limit = 20
+        libraryRequest.filter(text: songModel.title)
         
         do {
-            if let libraryResponse = try? await libraryRequest.response(),
-            let _ = Array(libraryResponse.items.filter { $0.artwork != nil }).first {
-                return true
+            if let libraryResponse = try? await libraryRequest.response() {
+                if let _ = Array(libraryResponse.items.filter { $0.artwork != nil && $0.artistName.lowercased().contains(songModel.artist.lowercased()) }).first {
+                    return true
+                }
             }
         }
         return false
@@ -284,13 +281,13 @@ class SpotifyService {
         }
     }
     
-    func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], token: String) async {
+    func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async {
         let count = songs.count
         if count < 10 {
             artistIDs.removeAll()
             trackIDs.removeAll()
             
-            if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, token: token) {
+            if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, dislikedSongs: dislikedSongs, token: token) {
                 try? await persistRecommendations(songs: recommendedSongs)
                 return
             }

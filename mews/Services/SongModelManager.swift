@@ -52,10 +52,10 @@ class SongModelManager {
     
     func deleteSongModel(songModel: SongModel) async throws {
         let context = ModelContext(try ModelContainer(for: SongModel.self))
-        context.delete(songModel)
-        
         saveDislikedSong(title: songModel.title, url: songModel.catalogURL)
+        context.delete(songModel)
         savedDislikedSongs = getDislikedSongs()
+        try await fetchItems()
     }
     
     func saveDislikedSong(title: String, url: String) {

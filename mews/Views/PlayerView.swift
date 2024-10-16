@@ -89,6 +89,7 @@ struct PlayerView: View {
                 spotifyService.lowRecsTrigger(
                     songs: songModelManager.savedLibrarySongs,
                     recSongs: songModelManager.savedRecSongs,
+                    dislikedSongs: songModelManager.savedDislikedSongs?.map { $0.url } ?? [],
                     token: token)
                 
                 try await songModelManager.fetchItems()
@@ -132,11 +133,6 @@ struct PlayerView: View {
             if let liked {
                 Task {
                     try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: unusedRecSongs)
-                    if !liked {
-                        if let avSong {
-                            songModelManager.saveDislikedSong(title: avSong.title, url: avSong.catalogURL)
-                        }
-                    }
                 }
             }
         } label: {

@@ -53,15 +53,17 @@ final class PlayerViewModel {
     
     @MainActor
     func swipeAction(liked: Bool, unusedRecSongs: [SongModel]) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
         swipeDirection = liked ? .trailing : .leading
         guard let currentSong else { return }
         currentSong.liked = liked
-        do {
-            try context.save()
+        var songs = unusedRecSongs
+        if !liked {
+            try await SongModelManager().deleteSongModel(songModel: currentSong)
+            print("Deleted \(currentSong.title) from context")
+            songs.remove(at: songs.firstIndex(of: currentSong)!)
         }
         
-        if let recSong = unusedRecSongs.filter({ $0.id != currentSong.id }).randomElement() {
+        if let recSong = songs.randomElement() {
             let songURL = URL(string: recSong.previewURL)
             if let songURL = songURL {
                 let playerItem = AVPlayerItem(url: songURL)
@@ -69,7 +71,7 @@ final class PlayerViewModel {
             }
         }
         
-        if liked, let song = await SpotifyService().fetchCatalogSong(title: currentSong.title, url: currentSong.catalogURL) {
+        if liked, let song = await SpotifyService().fetchCatalogSong(title: currentSong.title, artist: currentSong.artist, url: currentSong.catalogURL) {
             try await MusicLibrary.shared.add(song)
         }
         
