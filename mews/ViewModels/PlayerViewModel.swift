@@ -52,15 +52,28 @@ final class PlayerViewModel {
     }
     
     @MainActor
-    func swipeAction(liked: Bool, unusedRecSongs: [SongModel]) async throws {
+    func swipeAction(liked: Bool?, unusedRecSongs: [SongModel]) async throws {
+        guard let liked else {
+            if let recSong = unusedRecSongs.randomElement() {
+                let songURL = URL(string: recSong.previewURL)
+                if let songURL = songURL {
+                    let playerItem = AVPlayerItem(url: songURL)
+                    await assignCurrentSong(item: playerItem, song: recSong)
+                }
+            }
+            return
+        }
+        
         swipeDirection = liked ? .trailing : .leading
         guard let currentSong else { return }
         currentSong.liked = liked
         var songs = unusedRecSongs
         if !liked {
             try await SongModelManager().deleteSongModel(songModel: currentSong)
-            print("Deleted \(currentSong.title) from context")
-            songs.remove(at: songs.firstIndex(of: currentSong)!)
+            if let index = songs.firstIndex(where: { $0.id == currentSong.id }) {
+                songs.remove(at: index)
+                print("Deleted \(currentSong.title) from context")
+            }
         }
         
         if let recSong = songs.randomElement() {

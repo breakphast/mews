@@ -21,6 +21,8 @@ struct PlayerView: View {
     @Environment(ControlsService.self) var mediaControls
     @Environment(\.colorScheme) var colorScheme
     @State private var haptic = false
+    @State private var showFilters = false
+    let height = UIScreen.main.bounds.height * 0.1
     
     private var isPlaying: Bool {
         return playerViewModel.isAvPlaying
@@ -32,6 +34,20 @@ struct PlayerView: View {
     
     private var unusedRecSongs: [SongModel] {
         songModelManager.unusedRecSongs
+    }
+    
+    private var customFilter: CustomFilter? {
+        songModelManager.customFilter
+    }
+    
+    var customRecommendations: [SongModel]? {
+        guard customFilter != nil else { return nil }
+        
+        return songModelManager.customFilterSongs.isEmpty ? nil : songModelManager.customFilterSongs
+    }
+    
+    var filterButtonColors: [Color] {
+        customFilter == nil ? [.appleMusic, .white] : [.appleMusic, .white]
     }
     
     var body: some View {
@@ -48,7 +64,19 @@ struct PlayerView: View {
             .padding()
             .background(Color.oreo.ignoresSafeArea())
             .onChange(of: unusedRecSongs.count) { _, newCount in
-                lowRecsTrigger(count: newCount)
+                if !spotifyService.fetchingActive {
+                    lowRecsTrigger(count: newCount)
+                }
+            }
+            .onChange(of: songModelManager.customFilterSongs.count) { _, songCount in
+                if let customFilter, !customFilter.fetchingActive {
+                    Task {
+                        await customFilter.lowCustomRecsTrigger(count: songCount)
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showFilters) {
+                CustomFilterView()
             }
         } else {
             ZStack {
@@ -68,7 +96,7 @@ struct PlayerView: View {
         withAnimation {
             playerViewModel.image = nil
         }
-        if let song = unusedRecSongs.randomElement(),
+        if let song = (customRecommendations ?? unusedRecSongs).randomElement(),
            let url = URL(string: song.previewURL) {
             Task {
                 let playerItem = AVPlayerItem(url: url)
@@ -99,13 +127,22 @@ struct PlayerView: View {
     
     private var navBar: some View {
         HStack {
-            Image(systemName: "line.3.horizontal.circle")
+            Image(systemName: "slider.horizontal.2.square")
+                .font(.largeTitle)
+                .onTapGesture {
+                    withAnimation(.bouncy) {
+                        showFilters.toggle()
+                    }
+                }
             Spacer()
             Text("Mews")
+                .font(.title)
             Spacer()
-            Image(systemName: "clock.arrow.circlepath")
+            Image(systemName: "person.circle")
+                .font(.largeTitle)
         }
-        .font(.title.bold())
+        .padding(.horizontal, 4)
+        .bold()
         .fontDesign(.rounded)
     }
     
@@ -118,7 +155,7 @@ struct PlayerView: View {
         HStack {
             button(liked: false, icon: "xmark", color: .gray, textColor: .white)
             Spacer()
-            button(icon: "wand.and.stars", color: .white, textColor: .appleMusic)
+            button(icon: "wand.and.stars", color: .white, textColor: .appleMusic, custom: true)
                 .offset(y: -16)
             Spacer()
             button(liked: true, icon: "heart.fill", color: .appleMusic, textColor: .white)
@@ -127,27 +164,40 @@ struct PlayerView: View {
         .padding()
     }
     
-    private func button(liked: Bool? = nil, icon: String, color: Color, textColor: Color) -> some View {
+    private func button(liked: Bool? = nil, icon: String, color: Color, textColor: Color, custom: Bool = false) -> some View {
         Button {
             haptic.toggle()
-            if let liked {
-                Task {
-                    try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: unusedRecSongs)
+            Task {
+                if let liked {
+                    try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: (customRecommendations ?? unusedRecSongs))
+                } else if let token = spotifyTokenManager.token {
+                    
+                    if customFilter != nil {
+                        withAnimation(.smooth) {
+                            songModelManager.customFilter = nil
+                        }
+                    } else {
+                        withAnimation(.bouncy) {
+                            songModelManager.customFilter = CustomFilter(token: token, songModelManager: songModelManager)
+                        }
+                        try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: (customRecommendations ?? unusedRecSongs))
+                    }
                 }
             }
         } label: {
             Image(systemName: icon)
                 .font(.largeTitle)
-                .foregroundStyle(textColor)
+                .foregroundStyle((custom && customFilter != nil) ? filterButtonColors[0] : textColor)
+                .grayscale(custom && customFilter == nil ? 1 : 0)
                 .padding()
                 .background {
                     Circle()
-                        .fill(color.opacity(0.8))
-                        .frame(width: 88, height: 88)
+                        .fill((custom && customFilter != nil ? filterButtonColors[1] : color).opacity(0.8))
+                        .frame(width: height, height: height)
                         .overlay {
                             Circle()
-                                .stroke(color.opacity(0.8), lineWidth: 2)
-                                .frame(width: 88, height: 88)
+                                .stroke((custom && customFilter != nil ? filterButtonColors[1] : color).opacity(0.8), lineWidth: 2)
+                                .frame(width: height, height: height)
                         }
                         .shadow(color: .snow.opacity(colorScheme == .light ? 0.3 : 0.05), radius: 6, x: 2, y: 4)
                 }

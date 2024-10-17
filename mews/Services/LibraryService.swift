@@ -15,6 +15,13 @@ class LibraryService {
     let spotifyService = SpotifyService()
     var songs = [Song]()
     var playlists = [Playlist]()
+    var libraryArtists = [String]()
+    
+    init() {
+        Task {
+            await getSavedLibraryArtists()
+        }
+    }
     
     func fetchArtwork(from url: URL) async -> UIImage? {
         do {
@@ -119,6 +126,39 @@ class LibraryService {
                 }
             }
             return catalogSongs.isEmpty ? nil : catalogSongs
+        }
+    }
+    
+    func fetchLibraryArtists() async throws -> [String]? {
+        let libraryRequest = MusicLibraryRequest<Artist>()
+
+        do {
+            let libraryResponse = try await libraryRequest.response()
+            let artists = Array(libraryResponse.items.filter { !$0.name.isEmpty }.map { $0.name })
+            
+            if artists.isEmpty {
+                return nil
+            } else {
+                return artists
+            }
+        } catch {
+            print("Failed to fetch library artists: \(error)")
+            return nil
+        }
+    }
+    
+    func saveLibraryArtists(artists: [String]) {
+        UserDefaults.standard.set(artists, forKey: "libraryArtists")
+    }
+    
+    func getSavedLibraryArtists() async {
+        if let artists = UserDefaults.standard.array(forKey: "libraryArtists") as? [String] {
+            libraryArtists = artists
+        } else {
+            if let artists = try? await fetchLibraryArtists() {
+                saveLibraryArtists(artists: artists)
+                libraryArtists = artists
+            }
         }
     }
     

@@ -19,8 +19,10 @@ class SongModelManager {
     var savedLibrarySongs: [SongModel] { savedSongs.library }
     var savedRecSongs: [SongModel] { savedSongs.recommended }
     var likedRecSongs: [SongModel] { savedRecSongs.likedRecommended }
-    var dislikedRecSongs: [SongModel] { savedRecSongs.dislikedRecommended }
     var unusedRecSongs: [SongModel] { savedRecSongs.unusedRecommended }
+    
+    var customFilter: CustomFilter?
+    var customFilterSongs: [SongModel] { savedSongs.customRecommended }
     
     var savedDislikedSongs: [(title: String, url: String)]?
     

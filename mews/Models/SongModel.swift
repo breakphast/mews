@@ -22,6 +22,8 @@ class SongModel {
     var isCatalog: Bool
     var liked: Bool? = nil
     var recSong: String = ""
+    var explicit: Bool? = nil
+    var custom: Bool = false
     
     init(song: Song, isCatalog: Bool) {
         id = song.id.rawValue
@@ -32,6 +34,7 @@ class SongModel {
         genre = song.genres?.first?.name
         catalogURL = song.url?.absoluteString ?? ""
         previewURL = song.previewAssets?.first?.url?.absoluteString ?? ""
+        explicit = song.contentRating == .explicit
         self.isCatalog = isCatalog
     }
 }
@@ -40,6 +43,6 @@ enum SongModelFilter: CaseIterable {
     case library
     case recommended
     case likedRecommended
-    case dislikedRecommended
     case unusedRecommended
+    case customRecommended
 }

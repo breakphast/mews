@@ -12,9 +12,11 @@ import SwiftData
 
 @Observable
 class SpotifyService {
-    var artistIDs = [String]()
-    var trackIDs = [String]()
-    var genres = [String]()
+    var artistSeeds = [String]()
+    var trackSeeds = [String]()
+    var genreSeed = "rap"
+    
+    var fetchingActive = false
     
     var container: ModelContainer {
         let container = try! ModelContainer(for: SongModel.self)
@@ -51,6 +53,7 @@ class SpotifyService {
                 print("URLs do not match")
                 return nil
             }
+            
         } catch {
             print("Error fetching catalog song: \(title)")
         }
@@ -78,7 +81,7 @@ class SpotifyService {
             
             let decodedResponse = try JSONDecoder().decode(SpotifySearchResult.self, from: data)
             if let firstArtist = decodedResponse.artists.items.first {
-                artistIDs.append(firstArtist.id)
+                artistSeeds.append(firstArtist.id)
                 return firstArtist.id
             }
         } catch {
@@ -111,8 +114,8 @@ class SpotifyService {
             let decodedResponse = try JSONDecoder().decode(SpotifyTrackSearchResult.self, from: data)
             
             for track in decodedResponse.tracks.items {
-                trackIDs.append(track.id)
-                return nil
+                trackSeeds.append(track.id)
+                return track.id
             }
         } catch {
             print("Error fetching track ID: \(error.localizedDescription)")
@@ -124,21 +127,18 @@ class SpotifyService {
     @MainActor
     func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async -> [String: [Song]]? {
         var recommendedSongs = [String: [Song]]()
-        
-        // Loop over each song in the unused library songs
+        fetchingActive = true
         for song in unusedLibSongs {
             print("Using song \(song.title) for recommendations.")
             
-            // Fetch artist and track IDs for the current song
-            artistIDs.removeAll()
-            trackIDs.removeAll()
+            artistSeeds.removeAll()
+            trackSeeds.removeAll()
             let _ = await fetchArtistID(artist: song.artist, token: token)
             let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
             
             if let recommendations = await fetchRecommendations(token: token) {
                 var indieRecommendations = [Song]()
                 
-                // Collect at least 10 unique catalog songs for the current recommendation
                 while indieRecommendations.count < 10 {
                     for recSong in recommendations {
                         guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
@@ -152,7 +152,6 @@ class SpotifyService {
                         }
                     }
                 }
-                // Append indieRecommendations to the current song ID in recommendedSongs
                 if recommendedSongs[song.id] != nil {
                     recommendedSongs[song.id]?.append(contentsOf: indieRecommendations)
                 } else {
@@ -161,25 +160,25 @@ class SpotifyService {
                 
                 print("Added recommendations for \(song.title), total recommendations now: \(recommendedSongs.values.flatMap({ $0 }).count)")
                 
-                // After processing each song, check if we've reached the target of 50 recommendations
                 if recommendedSongs.values.flatMap({ $0 }).count >= 50 {
                     print("Reached 50 recommendations. Stopping further processing.")
+                    fetchingActive = false
                     return recommendedSongs
                 }
             }
         }
-        
+        fetchingActive = false
         print("Returned \(recommendedSongs.values.flatMap({ $0 }).count) recommendations")
         return recommendedSongs.isEmpty ? nil : recommendedSongs
     }
     
     func fetchRecommendations(token: String) async -> [Song]? {
-        guard !trackIDs.isEmpty || !artistIDs.isEmpty else {
+        guard !trackSeeds.isEmpty || !artistSeeds.isEmpty else {
             return nil
         }
-        let seedArtistsParam = artistIDs.joined(separator: "%2C")
-        let seedGenresParam = "rap"
-        let seedTracksParam = trackIDs.joined(separator: "%2C")
+        let seedArtistsParam = artistSeeds.joined(separator: "%2C")
+        let seedGenresParam = genreSeed
+        let seedTracksParam = trackSeeds.joined(separator: "%2C")
         
         guard let url = URL(string: "https://api.spotify.com/v1/recommendations?seed_artists=\(seedArtistsParam)&seed_genres=\(seedGenresParam)&seed_tracks=\(seedTracksParam)") else {
             print("Invalid URL")
@@ -284,8 +283,8 @@ class SpotifyService {
     func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async {
         let count = songs.count
         if count < 10 {
-            artistIDs.removeAll()
-            trackIDs.removeAll()
+            artistSeeds.removeAll()
+            trackSeeds.removeAll()
             
             if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, dislikedSongs: dislikedSongs, token: token) {
                 try? await persistRecommendations(songs: recommendedSongs)

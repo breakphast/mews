@@ -32,20 +32,22 @@ struct SongView: View {
                 if playerViewModel.initalLoad {
                     VStack(alignment: .leading, spacing: 24) {
                         if let artworkImage {
-                            if let recSong {
-                                HStack(spacing: 2) {
+                            HStack(spacing: 2) {
+                                if let recSong {
                                     Text("Inspired by:")
                                         .fontWeight(.light)
                                     Text("\(recSong.artist) - \(recSong.title)")
                                         .bold()
+                                } else {
+                                    Text("Custom")
+                                        .fontWeight(.bold)
                                 }
-                                .font(.caption)
-                                .foregroundStyle(.snow)
-                                .padding(.bottom, 4)
-                                .frame(maxWidth: .infinity, alignment: .top)
-                                .multilineTextAlignment(.leading)
-                                .lineLimit(2)
                             }
+                            .font(.caption)
+                            .foregroundStyle(.snow)
+                            .frame(maxWidth: .infinity, alignment: .top)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
                             
                             Image(uiImage: artworkImage)
                                 .resizable()
@@ -77,7 +79,9 @@ struct SongView: View {
                                 HStack(spacing: 2) {
                                     Text(song.title)
                                         .lineLimit(1)
-                                    Image(systemName: "e.square.fill")
+                                    if song.explicit == true {
+                                        Image(systemName: "e.square.fill")
+                                    }
                                 }
                                 .font(.title3.bold())
                                 .foregroundColor(.primary)
