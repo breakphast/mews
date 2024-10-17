@@ -25,18 +25,26 @@ class CustomFilter {
         self.songModelManager = songModelManager
         print("Init.")
     }
-        
+    
+    var artistName: String?
     var artistSeed: String?
     var genreSeed: String?
     
-    var fetchingActive = false
+    var customFetchingActive = false
+    
+    var activeSeed: SeedOption {
+        genreSeed == nil ? .artist : .genre
+    }
     
     @MainActor
     func assignFilters(artist: String? = nil, genre: String? = nil) async {
         if let artist {
             genreSeed = nil
-            artistSeed = artist
-            print("Assigned Artist")
+            if let artistID = await SpotifyService().fetchArtistID(artist: artist, token: token) {
+                artistName = artist
+                artistSeed = artistID
+                print("Assigned Artist \(artist)", artistID)
+            }
             return
         }
         
@@ -50,34 +58,27 @@ class CustomFilter {
     
     func getCustomRecommendations() async -> [String: [Song]]? {
         var recommendedSongs = [String: [Song]]()
-        fetchingActive = true
-        while recommendedSongs.values.flatMap({ $0 }).count < 30 {
-            if let recommendations = await fetchCustomRecommendations() {
-                for recSong in recommendations {
-                    guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
-                        continue
-                    }
-                    
-                    guard await !SpotifyService().songInLibrary(song: recSong) else { continue }
-                    guard await !SpotifyService().songInRecs(song: recSong, recSongs: songModelManager.savedRecSongs) else { continue }
-                    
-                    if let catalogSong = await SpotifyService().fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
-                        if recommendedSongs[recSong.id.rawValue] != nil {
-                            recommendedSongs[recSong.id.rawValue]?.append(catalogSong)
-                        } else {
-                            recommendedSongs[recSong.id.rawValue] = [catalogSong]
-                        }
-                        
-                        if recommendedSongs.values.flatMap({ $0 }).count >= 25 {
-                            print("Reached 25, no longer fetching")
-                            fetchingActive = false
-                            return recommendedSongs
-                        }
+        customFetchingActive = true
+        print("Getting recs based on \(artistSeed == nil ? "genre" : "artist")")
+        if let recommendations = await fetchCustomRecommendations() {
+            for recSong in recommendations {
+                guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
+                    continue
+                }
+                
+                guard await !SpotifyService().songInLibrary(song: recSong) else { continue }
+                guard await !SpotifyService().songInRecs(song: recSong, recSongs: songModelManager.savedRecSongs) else { continue }
+                
+                if let catalogSong = await SpotifyService().fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
+                    if recommendedSongs[recSong.id.rawValue] != nil {
+                        recommendedSongs[recSong.id.rawValue]?.append(catalogSong)
+                    } else {
+                        recommendedSongs[recSong.id.rawValue] = [catalogSong]
                     }
                 }
             }
         }
-        fetchingActive = false
+        customFetchingActive = false
         print("Returned \(recommendedSongs.count) custom recommendations")
         return recommendedSongs.isEmpty ? nil : recommendedSongs
     }
@@ -133,6 +134,7 @@ class CustomFilter {
                 let songModel = SongModel(song: song, isCatalog: false)
                 songModel.recSong = songID
                 songModel.custom = true
+                songModel.recSeed = artistName ?? genreSeed
                 context.insert(songModel)
             }
         }
@@ -145,11 +147,8 @@ class CustomFilter {
         }
     }
     
-    func lowCustomRecsTrigger(count: Int) async {
-        guard count < 15 else { return }
-        
-        artistSeed = nil
-        genreSeed = nil
+    func lowCustomRecsTrigger() async {
+        print("Getting low", songModelManager.customFilterSongs.count)
         
         if let recommendedSongs = await getCustomRecommendations() {
             try? await persistCustomRecommendations(songs: recommendedSongs)

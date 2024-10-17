@@ -10,6 +10,7 @@ import SwiftUI
 struct SongView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(SongModelManager.self) var songModelManager
+    @Environment(LibraryService.self) var libraryService
     @Environment(\.colorScheme) var colorScheme
     
     var song: SongModel? {
@@ -25,6 +26,11 @@ struct SongView: View {
         return nil
     }
     @State private var artworkImage: UIImage?
+    @State private var customMode = "artist"
+    
+    var recSeed: String? {
+        return song?.recSeed
+    }
     
     var body: some View {
         if let song {
@@ -39,13 +45,18 @@ struct SongView: View {
                                     Text("\(recSong.artist) - \(recSong.title)")
                                         .bold()
                                 } else {
-                                    Text("Custom")
-                                        .fontWeight(.bold)
+                                    HStack(spacing: 1) { // Using HStack instead of ZStack for side-by-side layout
+                                        Image(systemName: "wand.and.stars")
+                                            .font(.subheadline)
+                                        Text(recSeed ?? "")
+                                            .bold()
+                                    }
+                                    .padding(.leading, -4) // Optional subtle adjustment if needed for alignment
                                 }
                             }
                             .font(.caption)
                             .foregroundStyle(.snow)
-                            .frame(maxWidth: .infinity, alignment: .top)
+                            .frame(maxWidth: .infinity, alignment: .center)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
                             
@@ -105,19 +116,20 @@ struct SongView: View {
             .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: playerViewModel.swipeDirection)))
             .task {
                 if let imageURL = URL(string: song.artwork) {
-                    artworkImage = await LibraryService().fetchArtwork(from: imageURL)
+                    artworkImage = await Helpers.fetchArtwork(from: imageURL)
                     if !playerViewModel.initalLoad {
                         playerViewModel.initalLoad = true
                     }
                 }
             }
             .onChange(of: song) { _, newSong in
+                // song change trigger
                 Task {
                     withAnimation(.smooth(duration: 0.5)) {
                         playerViewModel.currentSong = nil
                     }
                     if let imageURL = URL(string: newSong.artwork) {
-                        let artwork = await LibraryService().fetchArtwork(from: imageURL)
+                        let artwork = await Helpers.fetchArtwork(from: imageURL)
                         self.artworkImage = artwork
                         playerViewModel.currentSong = newSong
                     }

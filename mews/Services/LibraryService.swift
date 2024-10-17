@@ -17,22 +17,6 @@ class LibraryService {
     var playlists = [Playlist]()
     var libraryArtists = [String]()
     
-    init() {
-        Task {
-            await getSavedLibraryArtists()
-        }
-    }
-    
-    func fetchArtwork(from url: URL) async -> UIImage? {
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            return UIImage(data: data)
-        } catch {
-            print("Failed to load artwork: \(error.localizedDescription)")
-            return nil
-        }
-    }
-    
     func getDeletePlaylist() async -> Playlist? {
         let libraryRequest = MusicLibraryRequest<Playlist>()
         
@@ -152,12 +136,14 @@ class LibraryService {
     }
     
     func getSavedLibraryArtists() async {
-        if let artists = UserDefaults.standard.array(forKey: "libraryArtists") as? [String] {
+        if let artists = UserDefaults.standard.array(forKey: "libraryArtists") as? [String], !artists.isEmpty {
             libraryArtists = artists
+            return
         } else {
             if let artists = try? await fetchLibraryArtists() {
                 saveLibraryArtists(artists: artists)
                 libraryArtists = artists
+                return
             }
         }
     }

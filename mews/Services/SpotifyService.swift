@@ -160,8 +160,8 @@ class SpotifyService {
                 
                 print("Added recommendations for \(song.title), total recommendations now: \(recommendedSongs.values.flatMap({ $0 }).count)")
                 
-                if recommendedSongs.values.flatMap({ $0 }).count >= 50 {
-                    print("Reached 50 recommendations. Stopping further processing.")
+                if recommendedSongs.values.flatMap({ $0 }).count >= 20 {
+                    print("Reached 20 recommendations. Stopping further processing.")
                     fetchingActive = false
                     return recommendedSongs
                 }

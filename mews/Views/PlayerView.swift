@@ -22,6 +22,7 @@ struct PlayerView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var haptic = false
     @State private var showFilters = false
+    @State private var scale: CGFloat = 100
     let height = UIScreen.main.bounds.height * 0.1
     
     private var isPlaying: Bool {
@@ -42,7 +43,6 @@ struct PlayerView: View {
     
     var customRecommendations: [SongModel]? {
         guard customFilter != nil else { return nil }
-        
         return songModelManager.customFilterSongs.isEmpty ? nil : songModelManager.customFilterSongs
     }
     
@@ -51,43 +51,68 @@ struct PlayerView: View {
     }
     
     var body: some View {
-        if albumImage != nil && avSong != nil {
-            VStack(spacing: 24) {
-                navBar
-                Spacer()
-                SongView()
-                Spacer()
-                if playerViewModel.initalLoad {
-                    buttons
-                }
-            }
-            .padding()
-            .background(Color.oreo.ignoresSafeArea())
-            .onChange(of: unusedRecSongs.count) { _, newCount in
-                if !spotifyService.fetchingActive {
-                    lowRecsTrigger(count: newCount)
-                }
-            }
-            .onChange(of: songModelManager.customFilterSongs.count) { _, songCount in
-                if let customFilter, !customFilter.fetchingActive {
-                    Task {
-                        await customFilter.lowCustomRecsTrigger(count: songCount)
+        ZStack {
+            Color.oreo.ignoresSafeArea()
+            
+            if albumImage != nil && avSong != nil {
+                VStack(spacing: 24) {
+                    if let customFilter, customFilter.customFetchingActive, customRecommendations == nil {
+                        splash
+                    } else {
+                        navBar
+                        Spacer()
+                        SongView()
+                        Spacer()
+                        if playerViewModel.initalLoad {
+                            buttons
+                        }
                     }
                 }
-            }
-            .fullScreenCover(isPresented: $showFilters) {
-                CustomFilterView()
-            }
-        } else {
-            ZStack {
+                .padding()
+                .onChange(of: unusedRecSongs.count) { _, newCount in
+                    if !spotifyService.fetchingActive {
+                        lowRecsTrigger(count: newCount)
+                    }
+                }
+                .onChange(of: songModelManager.customFilterSongs.count) { _, songCount in
+                    guard songCount <= 10 else { return }
+                    
+                    if let customFilter, !customFilter.customFetchingActive,
+                       let song = songModelManager.customFilterSongs.first {
+                        Task {
+                            await customFilter.assignFilters(
+                                artist: customFilter.activeSeed == .artist ? song.recSeed : nil,
+                                genre: customFilter.activeSeed != .artist ? song.recSeed : nil
+                            )
+                            await customFilter.lowCustomRecsTrigger()
+                        }
+                    }
+                }
+                .fullScreenCover(isPresented: $showFilters) {
+                    CustomFilterView()
+                }
+            } else {
                 ProgressView()
                     .tint(.appleMusic)
                     .bold()
-            }
-            .onChange(of: unusedRecSongs.count) { oldCount, _ in
-                assignNewSong(count: oldCount)
+                    .onChange(of: unusedRecSongs.count) { oldCount, _ in
+                        assignNewSong(count: oldCount)
+                    }
             }
         }
+    }
+    
+    private var splash: some View {
+        Image(systemName: "wand.and.stars")
+            .resizable()
+            .scaledToFit()
+            .frame(width: scale, height: scale)
+            .foregroundStyle(.appleMusic)
+            .onAppear {
+                withAnimation(.bouncy(extraBounce: 0.1).repeatForever(autoreverses: true)) {
+                    scale = 200
+                }
+            }
     }
     
     private func assignNewSong(count: Int) {
@@ -101,7 +126,7 @@ struct PlayerView: View {
             Task {
                 let playerItem = AVPlayerItem(url: url)
                 if albumImage == nil {
-                    await playerViewModel.assignCurrentSong(item: playerItem, song: song)
+                    await playerViewModel.assignPlayerSong(item: playerItem, song: song)
                 }
             }
         }
@@ -167,20 +192,24 @@ struct PlayerView: View {
     private func button(liked: Bool? = nil, icon: String, color: Color, textColor: Color, custom: Bool = false) -> some View {
         Button {
             haptic.toggle()
-            Task {
-                if let liked {
+            Task { @MainActor in
+                if let liked, let avSong {
                     try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: (customRecommendations ?? unusedRecSongs))
+                    try await songModelManager.deleteSongModel(songModel: avSong)
                 } else if let token = spotifyTokenManager.token {
-                    
                     if customFilter != nil {
                         withAnimation(.smooth) {
                             songModelManager.customFilter = nil
                         }
+                        try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: unusedRecSongs)
                     } else {
-                        withAnimation(.bouncy) {
+                        withAnimation(.snappy) {
                             songModelManager.customFilter = CustomFilter(token: token, songModelManager: songModelManager)
+                            if customRecommendations == nil { showFilters.toggle() }
                         }
-                        try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: (customRecommendations ?? unusedRecSongs))
+                        if let customRecommendations {
+                            try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: customRecommendations)
+                        }
                     }
                 }
             }

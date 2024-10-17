@@ -11,18 +11,26 @@ import MusicKit
 struct CustomFilterView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(SongModelManager.self) var songModelManager
+    @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(\.dismiss) var dismiss
-    @State var activeSeed: SeedOption = .artist
     
     private var artists: [String] {
         libraryService.libraryArtists
     }
     
+    private var savedCustomSongs: [SongModel] {
+        return songModelManager.customFilterSongs
+    }
+    
     private var seedOptions: [String] {
-        switch activeSeed {
+        switch customFilter?.activeSeed {
         case .artist: return artists
-        case .genre: return Genres.genres
+        default: return Genres.genres
         }
+    }
+    
+    private var customFilter: CustomFilter? {
+        songModelManager.customFilter
     }
     
     var body: some View {
@@ -33,11 +41,14 @@ struct CustomFilterView: View {
                 VStack(alignment: .leading) {
                     Image(systemName: "arrow.left")
                         .font(.title.bold())
-                        .foregroundStyle(.oreo)
+                        .foregroundStyle(.snow)
                         .padding(8)
-                        .background(Circle().fill(.white))
+                        .background(Circle().fill(.oreo))
                         .padding(.leading)
                         .onTapGesture {
+                            if savedCustomSongs.isEmpty {
+                                songModelManager.customFilter = nil
+                            }
                             dismiss()
                         }
                     ScrollView {
@@ -46,11 +57,20 @@ struct CustomFilterView: View {
                                 VStack {
                                     Button {
                                         Task {
-                                            await songModelManager.customFilter?.assignFilters(
-                                                artist: activeSeed == SeedOption.artist ? option : nil,
-                                                genre: activeSeed == SeedOption.genre ? option : nil
+                                            guard let customFilter else { return }
+                                            try await songModelManager.deleteSongModels(songModels: savedCustomSongs)
+                                            await customFilter.assignFilters(
+                                                artist: customFilter.activeSeed == SeedOption.artist ? option : nil,
+                                                genre: customFilter.activeSeed == SeedOption.genre ? option : nil
                                             )
-                                            dismiss()
+                                            withAnimation {
+                                                dismiss()
+                                            }
+                                            if let recs = await customFilter.getCustomRecommendations() {
+                                                try? await customFilter.persistCustomRecommendations(songs: recs)
+                                                try? await songModelManager.fetchItems()
+                                                try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: savedCustomSongs)
+                                            }
                                         }
                                     } label: {
                                         HStack {

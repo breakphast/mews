@@ -24,13 +24,14 @@ class SongModel {
     var recSong: String = ""
     var explicit: Bool? = nil
     var custom: Bool = false
+    var recSeed: String? = ""
     
     init(song: Song, isCatalog: Bool) {
         id = song.id.rawValue
         title = song.title
         artist = song.artistName
         album = song.albumTitle
-        artwork = song.artwork?.url(width: 600, height: 600)?.absoluteString ?? ""
+        artwork = song.artwork?.url(width: 1200, height: 1200)?.absoluteString ?? ""
         genre = song.genres?.first?.name
         catalogURL = song.url?.absoluteString ?? ""
         previewURL = song.previewAssets?.first?.url?.absoluteString ?? ""

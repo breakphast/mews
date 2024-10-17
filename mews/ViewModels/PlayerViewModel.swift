@@ -40,9 +40,9 @@ final class PlayerViewModel {
     }
     
     @MainActor
-    func assignCurrentSong(item: AVPlayerItem, song: SongModel) async {
+    func assignPlayerSong(item: AVPlayerItem, song: SongModel) async {
         if let url = URL(string: song.artwork) {
-            let artwork = await LibraryService().fetchArtwork(from: url)
+            let artwork = await Helpers.fetchArtwork(from: url)
             avPlayer.replaceCurrentItem(with: item)
             image = nil
             image = artwork
@@ -58,7 +58,7 @@ final class PlayerViewModel {
                 let songURL = URL(string: recSong.previewURL)
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
-                    await assignCurrentSong(item: playerItem, song: recSong)
+                    await assignPlayerSong(item: playerItem, song: recSong)
                 }
             }
             return
@@ -68,19 +68,15 @@ final class PlayerViewModel {
         guard let currentSong else { return }
         currentSong.liked = liked
         var songs = unusedRecSongs
-        if !liked {
-            try await SongModelManager().deleteSongModel(songModel: currentSong)
-            if let index = songs.firstIndex(where: { $0.id == currentSong.id }) {
-                songs.remove(at: index)
-                print("Deleted \(currentSong.title) from context")
-            }
+        if let index = songs.firstIndex(where: { $0.id == currentSong.id }) {
+            songs.remove(at: index)
         }
         
         if let recSong = songs.randomElement() {
             let songURL = URL(string: recSong.previewURL)
             if let songURL = songURL {
                 let playerItem = AVPlayerItem(url: songURL)
-                await assignCurrentSong(item: playerItem, song: recSong)
+                await assignPlayerSong(item: playerItem, song: recSong)
             }
         }
         

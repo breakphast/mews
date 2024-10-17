@@ -47,6 +47,7 @@ struct mewsApp: App {
         if authService.status != .authorized {
             await authService.authorizeAction()
         }
+        await libraryService.getSavedLibraryArtists()
         if songModelManager.savedSongs.isEmpty || songModelManager.unusedRecSongs.count <= 10 {
             if let recommendations = await libraryService.getHeavyRotation() {
                 var librarySongs = [Song]()
@@ -67,7 +68,7 @@ struct mewsApp: App {
                     let songURL = URL(string: song.previewURL)
                     if let songURL = songURL {
                         let playerItem = AVPlayerItem(url: songURL)
-                        await playerViewModel.assignCurrentSong(item: playerItem, song: song)
+                        await playerViewModel.assignPlayerSong(item: playerItem, song: song)
                     }
                 }
                 // use catalog songs to get spotify recs and persist non catalog
@@ -80,14 +81,6 @@ struct mewsApp: App {
                    ) {
                     try await spotifyService.persistRecommendations(songs: recommendedSongs)
                     try await songModelManager.fetchItems()
-                }
-            }
-        } else {
-            if let song = songModelManager.unusedRecSongs.randomElement() {
-                let songURL = URL(string: song.previewURL)
-                if let songURL = songURL {
-                    let playerItem = AVPlayerItem(url: songURL)
-                    await playerViewModel.assignCurrentSong(item: playerItem, song: song)
                 }
             }
         }

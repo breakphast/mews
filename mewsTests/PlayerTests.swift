@@ -29,7 +29,7 @@ final class PlayerTests {
     func assignSong() async {
         if let song = songManager.savedRecSongs.first, let url = URL(string: song.catalogURL) {
             let item = AVPlayerItem(url: url)
-            await playerViewModel.assignCurrentSong(item: item, song: song)
+            await playerViewModel.assignPlayerSong(item: item, song: song)
             #expect(playerViewModel.currentSong == song)
         }
     }
@@ -42,7 +42,7 @@ final class PlayerTests {
         
         if let url = URL(string: song.catalogURL) {
             let item = AVPlayerItem(url: url)
-            await playerViewModel.assignCurrentSong(item: item, song: song)
+            await playerViewModel.assignPlayerSong(item: item, song: song)
             try? await playerViewModel.swipeAction(liked: like, unusedRecSongs: songManager.unusedRecSongs)
             guard let liked = song.liked else { return }
             

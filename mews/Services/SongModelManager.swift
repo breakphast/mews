@@ -52,12 +52,40 @@ class SongModelManager {
         return
     }
     
+    @MainActor
     func deleteSongModel(songModel: SongModel) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        let context = container.mainContext
+        
         saveDislikedSong(title: songModel.title, url: songModel.catalogURL)
+        
         context.delete(songModel)
+        
+        do {
+            try context.save()
+            print("Successfully deleted song model.")
+        } catch {
+            print("Failed to delete song model:", error)
+            throw error
+        }
+
         savedDislikedSongs = getDislikedSongs()
         try await fetchItems()
+    }
+    
+    @MainActor
+    func deleteSongModels(songModels: [SongModel]) async throws {
+        let context = container.mainContext
+
+        for songModel in songModels {
+            context.delete(songModel)
+        }
+
+        do {
+            try context.save()
+            try await fetchItems()
+        } catch {
+            print("Failed to delete songs:", error)
+        }
     }
     
     func saveDislikedSong(title: String, url: String) {
