@@ -15,10 +15,11 @@ struct CustomFilterView: View {
     @Environment(SpotifyTokenManager.self) var spotifyTokenManager
     @Environment(\.dismiss) var dismiss
     @State private var artistText = ""
+    @State private var genreText = ""
     @FocusState private var focus: Bool
     
     private var artists: [String] {
-        libraryService.libraryArtists.filter { artist in
+        libraryService.artists.filter { artist in
             artistText.isEmpty || artist.lowercased().contains(artistText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
         }
     }
@@ -26,10 +27,13 @@ struct CustomFilterView: View {
     private var seedOptions: [String] {
         switch filter.activeSeed {
         case .artist:
-            artists.filter { artist in
+            return artists.filter { artist in
                 artistText.isEmpty || artist.lowercased().contains(artistText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
             }
-        case .genre: Genres.genres.keys.map { $0 }.sorted { $1 > $0 }
+        case .genre:
+            return Genres.genres.keys.filter { genre in
+                genreText.isEmpty || genre.lowercased().contains(genreText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+            }.sorted { $1 > $0 }
         }
     }
     
@@ -50,9 +54,7 @@ struct CustomFilterView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 
                 seedPicker
-                if filter.activeSeed == .artist {
-                    artistTextField
-                }
+                seedTextField
                 seedsScrollView
             }
             .padding(.top)
@@ -69,13 +71,13 @@ struct CustomFilterView: View {
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.horizontal, 48)
     }
-    private var artistTextField: some View {
-        TextField("Search for artist", text: $artistText)
+    private var seedTextField: some View {
+        TextField("Search for \(filter.activeSeed == .artist ? "library artist" : "genre")", text: (filter.activeSeed == .artist ? $artistText : $genreText))
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.white.opacity(0.7))
+                    .fill(.oreo.opacity(0.7))
                     .shadow(color: .snow.opacity(0.1), radius: 12, x: 2, y: 2)
             }
             .padding(.vertical, 8)
@@ -103,8 +105,6 @@ struct CustomFilterView: View {
                                     Text(option)
                                         .fontWeight(.semibold)
                                     Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .fontWeight(.bold)
                                 }
                                 .font(.title3)
                             }

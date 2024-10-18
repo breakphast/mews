@@ -48,6 +48,7 @@ struct mewsApp: App {
             await authService.authorizeAction()
         }
         await libraryService.getSavedLibraryArtists()
+        try await libraryService.fetchLibraryPlaylists()
         if songModelManager.savedSongs.isEmpty || songModelManager.unusedRecSongs.count <= 10 {
             if let recommendations = await libraryService.getHeavyRotation() {
                 var librarySongs = [Song]()

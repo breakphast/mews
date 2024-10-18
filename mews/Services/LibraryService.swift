@@ -15,18 +15,9 @@ class LibraryService {
     let spotifyService = SpotifyService()
     var songs = [Song]()
     var playlists = [Playlist]()
-    var libraryArtists = [String]()
-    
-    func getDeletePlaylist() async -> Playlist? {
-        let libraryRequest = MusicLibraryRequest<Playlist>()
+    var artists = [String]()
+    var activePlaylist: Playlist?
         
-        let libraryResponse = try? await libraryRequest.response()
-        if let playlist = libraryResponse?.items.first(where: { $0.name == "Songs To Delete (mews)" }) {
-            return playlist
-        }
-        return nil
-    }
-    
     func getHeavyRotation() async -> [(artistName: String, name: String, id: String)]? {
         do {
             // Step 1: Ensure user authorization for Apple Music
@@ -131,18 +122,37 @@ class LibraryService {
         }
     }
     
+    func getDeletePlaylist() async -> Playlist? {
+        let libraryRequest = MusicLibraryRequest<Playlist>()
+        
+        let libraryResponse = try? await libraryRequest.response()
+        if let playlist = libraryResponse?.items.first(where: { $0.name == "Songs To Delete (mews)" }) {
+            return playlist
+        }
+        return nil
+    }
+    
+    func fetchLibraryPlaylists() async throws {
+        let libraryRequest = MusicLibraryRequest<Playlist>()
+        
+        do {
+            let libraryResponse = try await libraryRequest.response()
+            playlists = Array(libraryResponse.items.filter { $0.kind == .userShared })
+        }
+    }
+    
     func saveLibraryArtists(artists: [String]) {
         UserDefaults.standard.set(artists, forKey: "libraryArtists")
     }
     
     func getSavedLibraryArtists() async {
-        if let artists = UserDefaults.standard.array(forKey: "libraryArtists") as? [String], !artists.isEmpty {
-            libraryArtists = artists
+        if let savedArtists = UserDefaults.standard.array(forKey: "libraryArtists") as? [String], !savedArtists.isEmpty {
+            artists = savedArtists
             return
         } else {
-            if let artists = try? await fetchLibraryArtists() {
+            if let savedArtists = try? await fetchLibraryArtists() {
                 saveLibraryArtists(artists: artists)
-                libraryArtists = artists
+                artists = savedArtists
                 return
             }
         }

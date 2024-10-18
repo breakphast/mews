@@ -12,6 +12,7 @@ struct SongView: View {
     @Environment(SongModelManager.self) var songModelManager
     @Environment(LibraryService.self) var libraryService
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.openURL) var openURL
     
     var song: SongModel? {
         playerViewModel.currentSong
@@ -111,6 +112,11 @@ struct SongView: View {
                                 .scaledToFit()
                                 .frame(width: 30, height: 30)
                                 .padding(.leading)
+                                .onTapGesture {
+                                    if let url = URL(string: song.catalogURL) {
+                                        openURL(url)
+                                    }
+                                }
                         }
                     }
                     .fontDesign(.rounded)

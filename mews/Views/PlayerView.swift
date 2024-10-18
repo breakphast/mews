@@ -22,6 +22,7 @@ struct PlayerView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var haptic = false
     @State private var showFilters = false
+    @State private var showSettings = false
     @State private var scale: CGFloat = 50
     let height = UIScreen.main.bounds.height * 0.1
     
@@ -107,6 +108,9 @@ struct PlayerView: View {
                     CustomFilterView(filter: customFilter)
                 }
             }
+            .sheet(isPresented: $showSettings) {
+                PlaylistsView()
+            }
         }
     }
     
@@ -177,6 +181,11 @@ struct PlayerView: View {
             Spacer()
             Image(systemName: "person.circle")
                 .font(.largeTitle)
+                .onTapGesture {
+                    withAnimation {
+                        showSettings.toggle()
+                    }
+                }
         }
         .padding(.horizontal, 4)
         .bold()
