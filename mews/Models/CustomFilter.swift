@@ -33,7 +33,7 @@ class CustomFilter {
     var customFetchingActive = false
     var lowRecsActive = false
     
-    var activeSeed: SeedOption = .genre
+    var activeSeed: SeedOption = .artist
     var active = false
     
     @MainActor

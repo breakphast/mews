@@ -14,74 +14,110 @@ struct CustomFilterView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(SpotifyTokenManager.self) var spotifyTokenManager
     @Environment(\.dismiss) var dismiss
+    @State private var artistText = ""
+    @FocusState private var focus: Bool
     
     private var artists: [String] {
-        libraryService.libraryArtists
+        libraryService.libraryArtists.filter { artist in
+            artistText.isEmpty || artist.lowercased().contains(artistText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+        }
+    }
+    
+    private var seedOptions: [String] {
+        switch filter.activeSeed {
+        case .artist:
+            artists.filter { artist in
+                artistText.isEmpty || artist.lowercased().contains(artistText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+            }
+        case .genre: Genres.genres.keys.map { $0 }.sorted { $1 > $0 }
+        }
     }
     
     private var savedCustomSongs: [SongModel] {
         songModelManager.customFilterSongs
     }
     
-    private var seedOptions: [String] {
-        switch filter.activeSeed {
-        case .artist: artists
-        case .genre: Genres.genres.keys.map { $0 }.sorted { $1 > $0 }
-        }
-    }
-    
     @Bindable var filter: CustomFilter
-    
     var body: some View {
         ZStack {
             Color.oreo.ignoresSafeArea()
             
-            if !seedOptions.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Capsule()
-                        .fill(.snow.opacity(0.8))
-                        .frame(width: 55, height: 6)
-                        .padding(.bottom, 4)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    Picker(selection: $filter.activeSeed, label: Text("Filter by")) {
-                        Text("Artist").tag(SeedOption.artist)
-                        Text("Genre").tag(SeedOption.genre)
-                    }
-                    .pickerStyle(.segmented)
+            VStack(alignment: .leading, spacing: 16) {
+                Capsule()
+                    .fill(.snow.opacity(0.8))
+                    .frame(width: 55, height: 6)
+                    .padding(.bottom, 4)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.horizontal, 48)
-                    
-                    ScrollView {
-                        VStack(alignment: .leading) {
-                            ForEach(seedOptions, id: \.self) { option in
-                                LazyVStack {
-                                    Button {
-                                        customSeedAction(option: option)
-                                    } label: {
-                                        HStack {
-                                            Text(option)
-                                                .fontWeight(.semibold)
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .fontWeight(.bold)
-                                        }
-                                        .font(.title3)
-                                    }
-                                    .tint(.snow)
-                                    
-                                    Divider()
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
+                
+                seedPicker
+                if filter.activeSeed == .artist {
+                    artistTextField
                 }
-                .padding(.top)
+                seedsScrollView
             }
+            .padding(.top)
         }
         .fontDesign(.rounded)
+    }
+    
+    private var seedPicker: some View {
+        Picker(selection: $filter.activeSeed, label: Text("Filter by")) {
+            Text("Artist").tag(SeedOption.artist)
+            Text("Genre").tag(SeedOption.genre)
+        }
+        .pickerStyle(.segmented)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 48)
+    }
+    private var artistTextField: some View {
+        TextField("Search for artist", text: $artistText)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.white.opacity(0.7))
+                    .shadow(color: .snow.opacity(0.1), radius: 12, x: 2, y: 2)
+            }
+            .padding(.vertical, 8)
+            .bold()
+            .autocorrectionDisabled()
+            .padding(.horizontal)
+            .tint(.appleMusic)
+            .focused($focus)
+    }
+    private var seedsScrollView: some View {
+        ScrollView {
+            VStack(alignment: .leading) {
+                if seedOptions.isEmpty {
+                    Text("No results found")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                } else {
+                    ForEach(seedOptions, id: \.self) { option in
+                        LazyVStack {
+                            Button {
+                                focus = false
+                                customSeedAction(option: option)
+                            } label: {
+                                HStack {
+                                    Text(option)
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .fontWeight(.bold)
+                                }
+                                .font(.title3)
+                            }
+                            .tint(.snow)
+                            
+                            Divider()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
     }
     
     private func customSeedAction(option: String) {
@@ -91,7 +127,6 @@ struct CustomFilterView: View {
             withAnimation {
                 dismiss()
             }
-            print(filter.activeSeed)
             if filter.activeSeed == .artist,
                let artist = await SpotifyService().fetchArtistID(
                 artist: option,
