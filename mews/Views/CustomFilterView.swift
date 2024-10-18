@@ -19,59 +19,44 @@ struct CustomFilterView: View {
     }
     
     private var savedCustomSongs: [SongModel] {
-        return songModelManager.customFilterSongs
+        songModelManager.customFilterSongs
     }
     
     private var seedOptions: [String] {
-        switch customFilter?.activeSeed {
-        case .artist: return artists
-        default: return Genres.genres
+        switch filter.activeSeed {
+        case .artist: artists
+        case .genre: Genres.genres.keys.map { $0 }.sorted { $1 > $0 }
         }
     }
     
-    private var customFilter: CustomFilter? {
-        songModelManager.customFilter
-    }
+    @Bindable var filter: CustomFilter
     
     var body: some View {
         ZStack {
             Color.oreo.ignoresSafeArea()
             
             if !seedOptions.isEmpty {
-                VStack(alignment: .leading) {
-                    Image(systemName: "arrow.left")
-                        .font(.title.bold())
-                        .foregroundStyle(.snow)
-                        .padding(8)
-                        .background(Circle().fill(.oreo))
-                        .padding(.leading)
-                        .onTapGesture {
-                            if savedCustomSongs.isEmpty {
-                                songModelManager.customFilter = nil
-                            }
-                            dismiss()
-                        }
+                VStack(alignment: .leading, spacing: 12) {
+                    Capsule()
+                        .fill(.snow.opacity(0.8))
+                        .frame(width: 55, height: 6)
+                        .padding(.bottom, 4)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    Picker(selection: $filter.activeSeed, label: Text("Filter by")) {
+                        Text("Artist").tag(SeedOption.artist)
+                        Text("Genre").tag(SeedOption.genre)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 48)
+                    
                     ScrollView {
                         VStack(alignment: .leading) {
                             ForEach(seedOptions, id: \.self) { option in
-                                VStack {
+                                LazyVStack {
                                     Button {
-                                        Task {
-                                            guard let customFilter else { return }
-                                            try await songModelManager.deleteSongModels(songModels: savedCustomSongs)
-                                            await customFilter.assignFilters(
-                                                artist: customFilter.activeSeed == SeedOption.artist ? option : nil,
-                                                genre: customFilter.activeSeed == SeedOption.genre ? option : nil
-                                            )
-                                            withAnimation {
-                                                dismiss()
-                                            }
-                                            if let recs = await customFilter.getCustomRecommendations() {
-                                                try? await customFilter.persistCustomRecommendations(songs: recs)
-                                                try? await songModelManager.fetchItems()
-                                                try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: savedCustomSongs)
-                                            }
-                                        }
+                                        customSeedAction(option: option)
                                     } label: {
                                         HStack {
                                             Text(option)
@@ -89,21 +74,41 @@ struct CustomFilterView: View {
                                 .padding(.vertical, 4)
                             }
                         }
-                        .padding()
+                        .padding(.horizontal)
                     }
-                    .padding(.top, 4)
                 }
                 .padding(.top)
             }
         }
         .fontDesign(.rounded)
     }
+    
+    private func customSeedAction(option: String) {
+        Task {
+            filter.customFetchingActive = true
+            playerViewModel.pauseAvPlayer()
+            withAnimation {
+                dismiss()
+            }
+            try await songModelManager.deleteSongModels(songModels: savedCustomSongs)
+            await filter.assignFilters(
+                artist: filter.activeSeed == SeedOption.artist ? option : nil,
+                genre: filter.activeSeed == SeedOption.genre ? Genres.genres[option] : nil
+            )
+            if let recs = await filter.getCustomRecommendations() {
+                try? await filter.persistCustomRecommendations(songs: recs)
+                try? await songModelManager.fetchItems()
+                try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: savedCustomSongs)
+                filter.customFetchingActive = false
+            }
+        }
+    }
 }
 
-#Preview {
-    CustomFilterView()
-        .environment(LibraryService())
-}
+//#Preview {
+//    CustomFilterView()
+//        .environment(LibraryService())
+//}
 
 enum SeedOption: String, CaseIterable {
     case artist = "Artist"

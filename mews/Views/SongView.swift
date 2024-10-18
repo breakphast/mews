@@ -45,13 +45,16 @@ struct SongView: View {
                                     Text("\(recSong.artist) - \(recSong.title)")
                                         .bold()
                                 } else {
-                                    HStack(spacing: 1) { // Using HStack instead of ZStack for side-by-side layout
+                                    HStack(spacing: 4) {
                                         Image(systemName: "wand.and.stars")
-                                            .font(.subheadline)
+                                            .foregroundStyle(.appleMusic)
+                                            .fontWeight(.black)
                                         Text(recSeed ?? "")
-                                            .bold()
                                     }
-                                    .padding(.leading, -4) // Optional subtle adjustment if needed for alignment
+                                    .padding(.leading, -4)
+                                    .padding(.bottom, -4)
+                                    .font(.body)
+                                    .fontWeight(.semibold)
                                 }
                             }
                             .font(.caption)

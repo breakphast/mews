@@ -31,8 +31,6 @@ class SpotifyService {
             for catalogSong in searchResponse.songs {
                 if catalogSong.artistName.lowercased().contains(artist.lowercased()) {
                     return catalogSong
-                } else {
-                    print("No matching artist found for \(title) ... ", "\(artist) vs \(catalogSong.artistName)")
                 }
             }
             return nil
@@ -281,15 +279,12 @@ class SpotifyService {
     }
     
     func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async {
-        let count = songs.count
-        if count < 10 {
-            artistSeeds.removeAll()
-            trackSeeds.removeAll()
-            
-            if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, dislikedSongs: dislikedSongs, token: token) {
-                try? await persistRecommendations(songs: recommendedSongs)
-                return
-            }
+        artistSeeds.removeAll()
+        trackSeeds.removeAll()
+        
+        if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, dislikedSongs: dislikedSongs, token: token) {
+            try? await persistRecommendations(songs: recommendedSongs)
+            return
         }
         return
     }

@@ -64,7 +64,7 @@ final class PlayerViewModel {
             return
         }
         
-        swipeDirection = liked ? .trailing : .leading
+        swipeDirection = .leading
         guard let currentSong else { return }
         currentSong.liked = liked
         var songs = unusedRecSongs
