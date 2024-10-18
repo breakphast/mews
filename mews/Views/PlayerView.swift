@@ -152,7 +152,7 @@ struct PlayerView: View {
             spotifyService.lowRecsTrigger(
                 songs: songModelManager.savedLibrarySongs,
                 recSongs: songModelManager.savedRecSongs,
-                dislikedSongs: songModelManager.savedDislikedSongs?.map { $0.url } ?? [],
+                dislikedSongs: songModelManager.savedDeletedSongs?.map { $0.url } ?? [],
                 token: token)
             
             try await songModelManager.fetchItems()

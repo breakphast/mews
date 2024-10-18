@@ -24,12 +24,12 @@ class SongModelManager {
     var customFilter: CustomFilter?
     var customFilterSongs: [SongModel] { savedSongs.customRecommended }
     
-    var savedDislikedSongs: [(title: String, url: String)]?
+    var savedDeletedSongs: [(title: String, url: String)]?
     
     init() {
         Task {
             try await fetchItems()
-            savedDislikedSongs = getDislikedSongs()
+            savedDeletedSongs = getDeletedSongs()
         }
     }
     
@@ -56,7 +56,7 @@ class SongModelManager {
     func deleteSongModel(songModel: SongModel) async throws {
         let context = container.mainContext
         
-        saveDislikedSong(title: songModel.title, url: songModel.catalogURL)
+        saveDeletedSong(title: songModel.title, url: songModel.catalogURL)
         
         context.delete(songModel)
         
@@ -68,7 +68,7 @@ class SongModelManager {
             throw error
         }
 
-        savedDislikedSongs = getDislikedSongs()
+        savedDeletedSongs = getDeletedSongs()
         try await fetchItems()
     }
     
@@ -88,15 +88,15 @@ class SongModelManager {
         }
     }
     
-    func saveDislikedSong(title: String, url: String) {
+    func saveDeletedSong(title: String, url: String) {
         let songString = "\(title),\(url)"
-        var dislikedSongs = UserDefaults.standard.stringArray(forKey: "dislikedSongs") ?? []
-        dislikedSongs.append(songString)
-        UserDefaults.standard.set(dislikedSongs, forKey: "dislikedSongs")
+        var deletedSongs = UserDefaults.standard.stringArray(forKey: "deletedSongs") ?? []
+        deletedSongs.append(songString)
+        UserDefaults.standard.set(deletedSongs, forKey: "deletedSongs")
     }
     
-    func getDislikedSongs() -> [(title: String, url: String)] {
-        let dislikedSongs = UserDefaults.standard.stringArray(forKey: "dislikedSongs") ?? []
+    func getDeletedSongs() -> [(title: String, url: String)] {
+        let dislikedSongs = UserDefaults.standard.stringArray(forKey: "deletedSongs") ?? []
         return dislikedSongs.compactMap { entry in
             let components = entry.split(separator: ",", maxSplits: 1).map(String.init)
             guard components.count == 2 else { return nil }

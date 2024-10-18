@@ -17,7 +17,7 @@ class CustomFilter {
     var recSongs: [SongModel] { songModelManager.savedRecSongs }
     
     var dislikedSongs: [String] {
-        songModelManager.savedDislikedSongs?.map { $0.url } ?? []
+        songModelManager.savedDeletedSongs?.map { $0.url } ?? []
     }
     
     init(token: String, songModelManager: SongModelManager) {

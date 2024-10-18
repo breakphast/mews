@@ -76,7 +76,7 @@ struct mewsApp: App {
                    let recommendedSongs = await spotifyService.getRecommendations(
                     using: songModelManager.savedLibrarySongs,
                     recSongs: songModelManager.savedRecSongs,
-                    dislikedSongs: songModelManager.savedDislikedSongs?.map { $0.url } ?? [],
+                    dislikedSongs: songModelManager.savedDeletedSongs?.map { $0.url } ?? [],
                     token: token
                    ) {
                     try await spotifyService.persistRecommendations(songs: recommendedSongs)
