@@ -67,9 +67,9 @@ struct PlayerView: View {
                     if avSong != nil {
                         SongView()
                         Spacer()
-                        if playerViewModel.initalLoad {
-                            buttons
-                        }
+                    }
+                    if playerViewModel.initialLoad {
+                        buttons
                     }
                 }
             }
@@ -127,7 +127,7 @@ struct PlayerView: View {
     }
     
     private func assignNewSong() {
-        guard !playerViewModel.initalLoad else { return }
+        guard !playerViewModel.initialLoad else { return }
         
         withAnimation {
             playerViewModel.image = nil
@@ -210,12 +210,12 @@ struct PlayerView: View {
                     try await songModelManager.deleteSongModel(songModel: avSong)
                 } else if let token {
                     if customFilter != nil {
-                        withAnimation(.smooth) {
+                        withAnimation(.bouncy) {
                             songModelManager.customFilter = nil
                         }
                         try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: unusedRecSongs)
                     } else {
-                        withAnimation(.snappy) {
+                        withAnimation(.bouncy) {
                             // assign custom filter regardless
                             songModelManager.customFilter = CustomFilter(token: token, songModelManager: songModelManager)
                             // if there are no customRecs to use, open up custom filter view

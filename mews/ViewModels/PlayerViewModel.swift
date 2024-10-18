@@ -20,7 +20,7 @@ final class PlayerViewModel {
     var currentSong: SongModel?
     var image: UIImage?
     var swipeDirection: Edge = .leading
-    var initalLoad = false
+    var initialLoad = false
     
     init() {
         configureAudioSession()
@@ -43,11 +43,12 @@ final class PlayerViewModel {
     func assignPlayerSong(item: AVPlayerItem, song: SongModel) async {
         if let url = URL(string: song.artwork) {
             let artwork = await Helpers.fetchArtwork(from: url)
-            avPlayer.replaceCurrentItem(with: item)
-            image = nil
-            image = artwork
-            currentSong = song
-            play()
+            withAnimation(.bouncy) {
+                avPlayer.replaceCurrentItem(with: item)
+                image = artwork
+                currentSong = song
+                play()
+            }
         }
     }
     

@@ -35,10 +35,10 @@ struct SongView: View {
     var body: some View {
         if let song {
             ZStack {
-                if playerViewModel.initalLoad {
+                if playerViewModel.initialLoad {
                     VStack(alignment: .leading, spacing: 24) {
                         if let artworkImage {
-                            HStack(spacing: 2) {
+                            HStack(spacing: 1) {
                                 if let recSong {
                                     Text("Inspired by:")
                                         .fontWeight(.light)
@@ -120,15 +120,15 @@ struct SongView: View {
             .task {
                 if let imageURL = URL(string: song.artwork) {
                     artworkImage = await Helpers.fetchArtwork(from: imageURL)
-                    if !playerViewModel.initalLoad {
-                        playerViewModel.initalLoad = true
+                    if !playerViewModel.initialLoad {
+                        playerViewModel.initialLoad = true
                     }
                 }
             }
             .onChange(of: song) { _, newSong in
                 // song change trigger
                 Task {
-                    withAnimation(.smooth(duration: 0.5)) {
+                    withAnimation(.bouncy) {
                         playerViewModel.currentSong = nil
                     }
                     if let imageURL = URL(string: newSong.artwork) {
