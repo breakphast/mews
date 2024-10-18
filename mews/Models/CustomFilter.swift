@@ -42,8 +42,8 @@ class CustomFilter {
             genreSeed = nil
             if let artistID = await SpotifyService().fetchArtistID(artist: artist, token: token) {
                 artistName = artist
-                artistSeed = artistID
-                print("Assigned Artist \(artist)", artistID)
+                artistSeed = artistID.artistID
+                print("Assigned Artist \(artist)", artistID.artistID)
             }
             return
         }

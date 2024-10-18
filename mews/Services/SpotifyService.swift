@@ -59,7 +59,7 @@ class SpotifyService {
         return nil
     }
     
-    func fetchArtistID(artist: String, token: String) async -> String? {
+    func fetchArtistID(artist: String, token: String) async -> (artistName: String, artistID: String)? {
         let encodedArtistName = artist.lowercased().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         guard let url = URL(string: "https://api.spotify.com/v1/search?q=\(encodedArtistName)&type=artist&limit=1") else {
             print("Invalid URL")
@@ -79,8 +79,8 @@ class SpotifyService {
             
             let decodedResponse = try JSONDecoder().decode(SpotifySearchResult.self, from: data)
             if let firstArtist = decodedResponse.artists.items.first {
-                artistSeeds.append(firstArtist.id)
-                return firstArtist.id
+                artistSeeds.append(firstArtist.id)  // Assuming artistSeeds is a global or class-level array
+                return (artistName: firstArtist.name, artistID: firstArtist.id)  // Return name and ID as a tuple
             }
         } catch {
             print("Error fetching artist ID: \(error.localizedDescription)")

@@ -12,6 +12,7 @@ struct CustomFilterView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(SongModelManager.self) var songModelManager
     @Environment(PlayerViewModel.self) var playerViewModel
+    @Environment(SpotifyTokenManager.self) var spotifyTokenManager
     @Environment(\.dismiss) var dismiss
     
     private var artists: [String] {
@@ -89,6 +90,17 @@ struct CustomFilterView: View {
             playerViewModel.pauseAvPlayer()
             withAnimation {
                 dismiss()
+            }
+            print(filter.activeSeed)
+            if filter.activeSeed == .artist,
+               let artist = await SpotifyService().fetchArtistID(
+                artist: option,
+                token: spotifyTokenManager.token ?? ""
+               ),
+               !option.lowercased().contains(artist.artistName.lowercased()) {
+                print("Invalid Artist", [artist.artistName, option])
+                filter.customFetchingActive = false
+                return
             }
             try await songModelManager.deleteSongModels(songModels: savedCustomSongs)
             await filter.assignFilters(
