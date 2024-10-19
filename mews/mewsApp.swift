@@ -65,13 +65,6 @@ struct mewsApp: App {
                 try await spotifyService.persistLibrarySongs(songs: librarySongs)
                 try await songModelManager.fetchItems()
                 
-                if let song = songModelManager.unusedRecSongs.randomElement() {
-                    let songURL = URL(string: song.previewURL)
-                    if let songURL = songURL {
-                        let playerItem = AVPlayerItem(url: songURL)
-                        await playerViewModel.assignPlayerSong(item: playerItem, song: song)
-                    }
-                }
                 // use catalog songs to get spotify recs and persist non catalog
                 if let token = spotifyTokenManager.token,
                    let recommendedSongs = await spotifyService.getRecommendations(
@@ -82,6 +75,14 @@ struct mewsApp: App {
                    ) {
                     try await spotifyService.persistRecommendations(songs: recommendedSongs)
                     try await songModelManager.fetchItems()
+                }
+                
+                if let song = songModelManager.unusedRecSongs.randomElement() {
+                    let songURL = URL(string: song.previewURL)
+                    if let songURL = songURL {
+                        let playerItem = AVPlayerItem(url: songURL)
+                        await playerViewModel.assignPlayerSong(item: playerItem, song: song)
+                    }
                 }
             }
         }

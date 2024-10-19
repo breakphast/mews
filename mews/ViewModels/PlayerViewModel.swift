@@ -20,7 +20,7 @@ final class PlayerViewModel {
     var currentSong: SongModel?
     var image: UIImage?
     var swipeDirection: Edge = .leading
-    var initialLoad = false
+    var switchingSongs = false
     
     init() {
         configureAudioSession()

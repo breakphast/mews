@@ -24,6 +24,7 @@ struct PlayerView: View {
     @State private var showFilters = false
     @State private var showSettings = false
     @State private var scale: CGFloat = 50
+    @State private var opacity: Double = 1
     let height = UIScreen.main.bounds.height * 0.1
     
     private var isPlaying: Bool {
@@ -66,12 +67,10 @@ struct PlayerView: View {
                     navBar
                     Spacer()
                     if avSong != nil {
-                        SongView()
+                        SongView(opacity: $opacity)
                         Spacer()
                     }
-                    if playerViewModel.initialLoad {
-                        buttons
-                    }
+                    buttons
                 }
             }
             .padding()
@@ -79,7 +78,10 @@ struct PlayerView: View {
                 assignNewSong()
             }
             .onChange(of: unusedRecSongs.count) { _, newCount in
-                guard newCount <= 10, let customFilter, !customFilter.lowRecsActive, !customFilter.customFetchingActive else { return }
+                guard newCount <= 15 else { return }
+                if let customFilter, customFilter.lowRecsActive || customFilter.customFetchingActive {
+                    return
+                }
                 if !spotifyService.fetchingActive {
                     lowRecsTrigger()
                 }
@@ -131,8 +133,6 @@ struct PlayerView: View {
     }
     
     private func assignNewSong() {
-        guard !playerViewModel.initialLoad else { return }
-        
         withAnimation {
             playerViewModel.image = nil
         }
@@ -213,8 +213,10 @@ struct PlayerView: View {
     private func button(liked: Bool? = nil, icon: String, color: Color, textColor: Color, custom: Bool = false) -> some View {
         Button {
             haptic.toggle()
+            opacity = 0
             Task { @MainActor in
                 if let liked, let avSong {
+                    playerViewModel.switchingSongs = true
                     try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: (customRecommendations ?? unusedRecSongs))
                     try await songModelManager.deleteSongModel(songModel: avSong)
                 } else if let token {
@@ -256,6 +258,7 @@ struct PlayerView: View {
                         .shadow(color: .snow.opacity(colorScheme == .light ? 0.3 : 0.05), radius: 6, x: 2, y: 4)
                 }
         }
+        .disabled(playerViewModel.switchingSongs)
         .sensoryFeedback((liked ?? true) ? .impact(weight: .heavy) : .impact(weight: .light), trigger: haptic)
     }
 }
