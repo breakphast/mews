@@ -53,7 +53,7 @@ struct CustomFilterView: View {
                     .padding(.bottom, 4)
                     .frame(maxWidth: .infinity, alignment: .center)
                 
-                seedPicker
+                CustomPicker(activeSeed: $filter.activeSeed)
                 seedTextField
                 seedsScrollView
             }
@@ -78,8 +78,8 @@ struct CustomFilterView: View {
             .padding(.vertical, 8)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.oreo.opacity(0.7))
-                    .shadow(color: .snow.opacity(0.1), radius: 12, x: 2, y: 2)
+                    .fill(.oreo.opacity(0.9))
+                    .shadow(color: .snow.opacity(0.15), radius: 4, x: 2, y: 2)
             }
             .padding(.vertical, 8)
             .bold()
@@ -98,7 +98,7 @@ struct CustomFilterView: View {
                         .foregroundColor(.gray)
                 } else {
                     ForEach(seedOptions, id: \.self) { option in
-                        LazyVStack {
+                        VStack {
                             Button {
                                 focus = false
                                 customSeedAction(option: option)
@@ -119,6 +119,9 @@ struct CustomFilterView: View {
                 }
             }
             .padding(.horizontal)
+        }
+        .transaction { transaction in
+            transaction.animation = nil
         }
     }
     
