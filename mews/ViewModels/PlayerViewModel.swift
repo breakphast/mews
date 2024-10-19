@@ -22,6 +22,14 @@ final class PlayerViewModel {
     var swipeDirection: Edge = .leading
     var switchingSongs = false
     
+    var haptic = false
+    var showFilters = false
+    var showSettings = false
+    var scale: CGFloat = 50
+    var opacity: Double = 1
+    
+    let height = UIScreen.main.bounds.height * 0.1
+    
     init() {
         configureAudioSession()
         avPlayer.actionAtItemEnd = .none
@@ -81,7 +89,7 @@ final class PlayerViewModel {
             }
         }
         
-        if liked, let song = await SpotifyService().fetchCatalogSong(title: currentSong.title, artist: currentSong.artist, url: currentSong.catalogURL) {
+        if liked, let song = await LibraryService.fetchCatalogSong(title: currentSong.title, artist: currentSong.artist, url: currentSong.catalogURL) {
             try await MusicLibrary.shared.add(song)
         }
         

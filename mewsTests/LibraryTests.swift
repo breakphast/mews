@@ -12,7 +12,7 @@ import SwiftData
 @testable import mews
 
 final class LibraryTests {
-    let libraryService = LibraryService()
+    let libraryService = LibraryService(songModelManager: SongModelManager())
     
     #if !targetEnvironment(simulator)
     @Test func getSongsFromLibrary() async throws {
@@ -21,7 +21,7 @@ final class LibraryTests {
             #expect(!songs.isEmpty)
             #expect(songs.compactMap { $0.playCount }.isEmpty)
             
-            let albumImage = await libraryService.fetchArtwork(from: songURL)
+            let albumImage = await Helpers.fetchArtwork(from: songURL)
             #expect(albumImage != nil)
         }
     }

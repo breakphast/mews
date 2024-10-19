@@ -12,14 +12,28 @@ import SwiftData
 
 @Observable
 class LibraryService {
-    
+    let songModelManager: SongModelManager
     // MARK: - Properties
-    
-    let spotifyService = SpotifyService()
     var songs = [Song]()
     var playlists = [Playlist]()
     var artists = [String]()
     var activePlaylist: Playlist?
+    
+    var savedSongs = [SongModel]()
+    
+    init(songModelManager: SongModelManager) {
+        self.songModelManager = songModelManager
+    }
+        
+    let descriptor = FetchDescriptor<SongModel>()
+    
+    @MainActor
+    func fetchItems() async throws {
+        let context = Helpers.container.mainContext
+        let items = try context.fetch(descriptor).filter { !$0.artwork.isEmpty }
+        songModelManager.savedSongs = items
+        return
+    }
     
     // Apple Music developer token
     let developerToken = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkY3NjNRQjQ4TUwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJHOVJQWU1TMlBBIiwiaWF0IjoxNzI3OTkwNjI1LCJleHAiOjE3NDM1NDI2MjV9.PX9Zzu6CtlH52ieCZG7S_w-q6YnINJg6JL5mrYuJ7lSuMpOBBxR3mTxZ1wdGiDjdU-zEJ6qxB-rDk04PxiPdvQ"
@@ -102,11 +116,63 @@ class LibraryService {
         
         var catalogSongs = [Song]()
         for song in songs {
-            if let catalogSong = await spotifyService.fetchCatalogSong(title: song.title, artist: song.artistName) {
+            if let catalogSong = await Self.fetchCatalogSong(title: song.title, artist: song.artistName) {
                 catalogSongs.append(catalogSong)
             }
         }
         return catalogSongs.isEmpty ? nil : catalogSongs
+    }
+    
+    func persistLibrarySongs(songs: [Song]) async throws {
+        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        
+        for song in songs {
+            let songModel = (SongModel(song: song, isCatalog: true))
+            context.insert(songModel)
+        }
+        
+        do {
+            try context.save()
+            print("Successfuly persisted \(songs.count) \("library") songs")
+        } catch {
+            print("Could not persist songs")
+        }
+    }
+    
+    @MainActor
+    static func fetchCatalogSong(title: String, artist: String) async -> Song? {
+        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
+        do {
+            let searchResponse = try await searchRequest.response()
+            for catalogSong in searchResponse.songs {
+                if catalogSong.artistName.lowercased().contains(artist.lowercased()) {
+                    return catalogSong
+                }
+            }
+            return nil
+        } catch {
+            print("Error fetching catalog song: \(title), \(error)")
+            return nil
+        }
+    }
+    
+    static func fetchCatalogSong(title: String, artist: String, url: String) async -> Song? {
+        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
+        do {
+            let searchResponse = try await searchRequest.response()
+            
+            if let catalogSong = searchResponse.songs.first(where: { $0.url?.absoluteString == url }) {
+                return catalogSong
+            } else {
+                print("URLs do not match")
+                return nil
+            }
+            
+        } catch {
+            print("Error fetching catalog song: \(title)")
+        }
+        
+        return nil
     }
     
     /// Fetches artists from the user's music library

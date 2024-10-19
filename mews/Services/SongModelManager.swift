@@ -11,9 +11,6 @@ import MusicKit
 
 @Observable
 class SongModelManager {
-    let spotifyService = SpotifyService()
-    var accessToken: String?
-    
     var savedSongs = [SongModel]()
     
     var savedLibrarySongs: [SongModel] { savedSongs.library }
@@ -27,34 +24,12 @@ class SongModelManager {
     var savedDeletedSongs: [(title: String, url: String)]?
     
     init() {
-        Task {
-            try await fetchItems()
-            savedDeletedSongs = getDeletedSongs()
-        }
-    }
-    
-    let container: ModelContainer = {
-        do {
-            let container = try ModelContainer(for: SongModel.self)
-            return container
-        } catch {
-            fatalError("Failed to create container: \(error)")
-        }
-    }()
-    
-    let descriptor = FetchDescriptor<SongModel>()
-    
-    @MainActor
-    func fetchItems() async throws {
-        let context = container.mainContext
-        let items = try context.fetch(descriptor).filter { !$0.artwork.isEmpty }
-        savedSongs = items
-        return
+        savedDeletedSongs = getDeletedSongs()
     }
     
     @MainActor
     func deleteSongModel(songModel: SongModel) async throws {
-        let context = container.mainContext
+        let context = Helpers.container.mainContext
         
         saveDeletedSong(title: songModel.title, url: songModel.catalogURL)
         
@@ -69,12 +44,11 @@ class SongModelManager {
         }
 
         savedDeletedSongs = getDeletedSongs()
-        try await fetchItems()
     }
     
     @MainActor
     func deleteSongModels(songModels: [SongModel]) async throws {
-        let context = container.mainContext
+        let context = Helpers.container.mainContext
 
         for songModel in songModels {
             context.delete(songModel)
@@ -82,7 +56,6 @@ class SongModelManager {
 
         do {
             try context.save()
-            try await fetchItems()
         } catch {
             print("Failed to delete songs:", error)
         }

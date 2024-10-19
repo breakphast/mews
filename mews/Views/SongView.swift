@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SongView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
-    @Environment(SongModelManager.self) var songModelManager
     @Environment(LibraryService.self) var libraryService
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.openURL) var openURL
@@ -22,7 +21,7 @@ struct SongView: View {
         playerViewModel.isAvPlaying
     }
     var recSong: SongModel? {
-        if let song, let recSong = songModelManager.savedLibrarySongs.first(where: { $0.id == song.recSong }) {
+        if let song, let recSong = libraryService.songModelManager.savedLibrarySongs.first(where: { $0.id == song.recSong }) {
             return recSong
         }
         return nil
@@ -130,7 +129,7 @@ struct SongView: View {
             }
             .onChange(of: song) { _, newSong in
                 // song change trigger
-                guard !(songModelManager.customFilter?.lowRecsActive ?? false) else { return }
+                guard !(libraryService.songModelManager.customFilter?.lowRecsActive ?? false) else { return }
                 
                 Task {
                     withAnimation(.bouncy.speed(0.8)){

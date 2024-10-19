@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct Helpers {
     static func fetchArtwork(from url: URL) async -> UIImage? {
@@ -17,4 +18,13 @@ struct Helpers {
             return nil
         }
     }
+    
+    static let container: ModelContainer = {
+        do {
+            let container = try ModelContainer(for: SongModel.self)
+            return container
+        } catch {
+            fatalError("Failed to create container: \(error)")
+        }
+    }()
 }

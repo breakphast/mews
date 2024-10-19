@@ -10,9 +10,9 @@ import MusicKit
 
 struct CustomFilterView: View {
     @Environment(LibraryService.self) var libraryService
-    @Environment(SongModelManager.self) var songModelManager
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(SpotifyTokenManager.self) var spotifyTokenManager
+    @Environment(SpotifyService.self) var spotifyService
     @Environment(\.dismiss) var dismiss
     @State private var artistText = ""
     @State private var genreText = ""
@@ -38,7 +38,7 @@ struct CustomFilterView: View {
     }
     
     private var savedCustomSongs: [SongModel] {
-        songModelManager.customFilterSongs
+        libraryService.songModelManager.customFilterSongs
     }
     
     @Bindable var filter: CustomFilter
@@ -71,6 +71,7 @@ struct CustomFilterView: View {
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.horizontal, 48)
     }
+    
     private var seedTextField: some View {
         TextField("Search for \(filter.activeSeed == .artist ? "library artist" : "genre")", text: (filter.activeSeed == .artist ? $artistText : $genreText))
             .padding(.horizontal)
@@ -87,6 +88,7 @@ struct CustomFilterView: View {
             .tint(.appleMusic)
             .focused($focus)
     }
+    
     private var seedsScrollView: some View {
         ScrollView {
             VStack(alignment: .leading) {
@@ -128,23 +130,22 @@ struct CustomFilterView: View {
                 dismiss()
             }
             if filter.activeSeed == .artist,
-               let artist = await SpotifyService().fetchArtistID(
-                artist: option,
-                token: spotifyTokenManager.token ?? ""
-               ),
+               let artist = await spotifyService.fetchArtistID(artist: option),
                !option.lowercased().contains(artist.artistName.lowercased()) {
                 print("Invalid Artist", [artist.artistName, option])
                 filter.customFetchingActive = false
                 return
             }
-            try await songModelManager.deleteSongModels(songModels: savedCustomSongs)
+            await spotifyTokenManager.ensureValidToken()
+            try await libraryService.songModelManager.deleteSongModels(songModels: savedCustomSongs)
+            try await libraryService.fetchItems()
             await filter.assignFilters(
                 artist: filter.activeSeed == SeedOption.artist ? option : nil,
                 genre: filter.activeSeed == SeedOption.genre ? Genres.genres[option] : nil
             )
             if let recs = await filter.getCustomRecommendations() {
                 try? await filter.persistCustomRecommendations(songs: recs)
-                try? await songModelManager.fetchItems()
+                try? await libraryService.fetchItems()
                 try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: savedCustomSongs)
                 filter.customFetchingActive = false
             }

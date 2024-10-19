@@ -11,8 +11,8 @@ import SwiftData
 
 @Observable
 class CustomFilter {
-    var token: String
-    var songModelManager: SongModelManager
+    let spotifyService: SpotifyService
+    let songModelManager: SongModelManager
     
     var recSongs: [SongModel] { songModelManager.savedRecSongs }
     
@@ -20,10 +20,9 @@ class CustomFilter {
         songModelManager.savedDeletedSongs?.map { $0.url } ?? []
     }
     
-    init(token: String, songModelManager: SongModelManager) {
-        self.token = token
+    init(spotifyService: SpotifyService, songModelManager: SongModelManager) {
+        self.spotifyService = spotifyService
         self.songModelManager = songModelManager
-        print("Init.")
     }
     
     var artistName: String?
@@ -36,11 +35,13 @@ class CustomFilter {
     var activeSeed: SeedOption = .artist
     var active = false
     
+    var token: String? { spotifyService.spotifyTokenManager.token }
+    
     @MainActor
     func assignFilters(artist: String? = nil, genre: String? = nil) async {
         if let artist {
             genreSeed = nil
-            if let artistID = await SpotifyService().fetchArtistID(artist: artist, token: token) {
+            if let artistID = await spotifyService.fetchArtistID(artist: artist) {
                 artistName = artist
                 artistSeed = artistID.artistID
                 print("Assigned Artist \(artist)", artistID.artistID)
@@ -57,17 +58,24 @@ class CustomFilter {
     }
     
     func getCustomRecommendations() async -> [String: [Song]]? {
+        await spotifyService.spotifyTokenManager.ensureValidToken()
+        
+        guard let token else {
+            print("No valid access token.")
+            return nil
+        }
+        
         var recommendedSongs = [String: [Song]]()
         print("Getting recs based on \(artistSeed == nil ? "genre \(genreSeed ?? "")" : "artist \(artistName ?? "")")")
-        if let recommendations = await fetchCustomRecommendations() {
+        if let recommendations = await fetchCustomRecommendations(token: token) {
             for recSong in recommendations {
                 guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
                     continue
                 }
-                guard await !SpotifyService().songInLibrary(song: recSong) else { continue }
-                guard await !SpotifyService().songInRecs(song: recSong, recSongs: songModelManager.savedRecSongs) else { continue }
+                guard await !spotifyService.songInLibrary(song: recSong) else { continue }
+                guard await !spotifyService.songInRecs(song: recSong, recSongs: songModelManager.savedRecSongs) else { continue }
                 
-                if let catalogSong = await SpotifyService().fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
+                if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
                     if recommendedSongs[recSong.id.rawValue] != nil {
                         recommendedSongs[recSong.id.rawValue]?.append(catalogSong)
                     } else {
@@ -80,7 +88,7 @@ class CustomFilter {
         return recommendedSongs.isEmpty ? nil : recommendedSongs
     }
     
-    func fetchCustomRecommendations() async -> [Song]? {
+    func fetchCustomRecommendations(token: String) async -> [Song]? {
         var queryItems = [URLQueryItem]()
         if let artistSeed = artistSeed {
             queryItems.append(URLQueryItem(name: "seed_artists", value: artistSeed))
@@ -112,7 +120,7 @@ class CustomFilter {
             
             var tracks = [Song]()
             for track in decodedResponse.tracks {
-                if let artist = track.artists.first?.name, let song = await SpotifyService().fetchCatalogSong(title: track.name, artist: artist) {
+                if let artist = track.artists.first?.name, let song = await LibraryService.fetchCatalogSong(title: track.name, artist: artist) {
                     tracks.append(song)
                 }
             }

@@ -15,51 +15,27 @@ class SpotifyService {
     var artistSeeds = [String]()
     var trackSeeds = [String]()
     var genreSeed = "rap"
-    
     var fetchingActive = false
+    
+    let spotifyTokenManager: SpotifyTokenManager
     
     var container: ModelContainer {
         let container = try! ModelContainer(for: SongModel.self)
         return container
     }
     
-    @MainActor
-    func fetchCatalogSong(title: String, artist: String) async -> Song? {
-        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
-        do {
-            let searchResponse = try await searchRequest.response()
-            for catalogSong in searchResponse.songs {
-                if catalogSong.artistName.lowercased().contains(artist.lowercased()) {
-                    return catalogSong
-                }
-            }
-            return nil
-        } catch {
-            print("Error fetching catalog song: \(title), \(error)")
-            return nil
-        }
+    init(tokenManager: SpotifyTokenManager) {
+        self.spotifyTokenManager = tokenManager
     }
-    
-    func fetchCatalogSong(title: String, artist: String, url: String) async -> Song? {
-        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
-        do {
-            let searchResponse = try await searchRequest.response()
-            
-            if let catalogSong = searchResponse.songs.first(where: { $0.url?.absoluteString == url }) {
-                return catalogSong
-            } else {
-                print("URLs do not match")
-                return nil
-            }
-            
-        } catch {
-            print("Error fetching catalog song: \(title)")
+        
+    func fetchArtistID(artist: String) async -> (artistName: String, artistID: String)? {
+        await spotifyTokenManager.ensureValidToken()
+        
+        guard let token = spotifyTokenManager.token else {
+            print("No valid access token.")
+            return nil
         }
         
-        return nil
-    }
-    
-    func fetchArtistID(artist: String, token: String) async -> (artistName: String, artistID: String)? {
         let encodedArtistName = artist.lowercased().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         guard let url = URL(string: "https://api.spotify.com/v1/search?q=\(encodedArtistName)&type=artist&limit=1") else {
             print("Invalid URL")
@@ -89,7 +65,14 @@ class SpotifyService {
         return nil
     }
     
-    func fetchTrackID(artist: String, title: String, token: String) async -> String? {
+    func fetchTrackID(artist: String, title: String) async -> String? {
+        await spotifyTokenManager.ensureValidToken()
+        
+        guard let token = spotifyTokenManager.token else {
+            print("No valid access token.")
+            return nil
+        }
+        
         let encodedTrackTitle = title.lowercased().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedArtistName = artist.lowercased().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         
@@ -123,7 +106,14 @@ class SpotifyService {
     }
     
     @MainActor
-    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async -> [String: [Song]]? {
+    func getRecommendations(using unusedLibSongs: [SongModel], recSongs: [SongModel], dislikedSongs: [String]) async -> [String: [Song]]? {
+        await spotifyTokenManager.ensureValidToken()
+        
+        guard let token = spotifyTokenManager.token else {
+            print("No valid access token.")
+            return nil
+        }
+        
         var recommendedSongs = [String: [Song]]()
         fetchingActive = true
         for song in unusedLibSongs {
@@ -131,8 +121,8 @@ class SpotifyService {
             
             artistSeeds.removeAll()
             trackSeeds.removeAll()
-            let _ = await fetchArtistID(artist: song.artist, token: token)
-            let _ = await fetchTrackID(artist: song.artist, title: song.title, token: token)
+            let _ = await fetchArtistID(artist: song.artist)
+            let _ = await fetchTrackID(artist: song.artist, title: song.title)
             
             if let recommendations = await fetchRecommendations(token: token) {
                 var indieRecommendations = [Song]()
@@ -145,7 +135,7 @@ class SpotifyService {
                         guard await !songInLibrary(song: recSong) else { continue }
                         guard await !songInRecs(song: recSong, recSongs: recSongs) else { continue }
                         
-                        if let catalogSong = await fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
+                        if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
                             indieRecommendations.append(catalogSong)
                         }
                     }
@@ -198,7 +188,7 @@ class SpotifyService {
             
             var tracks = [Song]()
             for track in decodedResponse.tracks {
-                if let artist = track.artists.first?.name, let song = await fetchCatalogSong(title: track.name, artist: artist) {
+                if let artist = track.artists.first?.name, let song = await LibraryService.fetchCatalogSong(title: track.name, artist: artist) {
                     tracks.append(song)
                 }
             }
@@ -243,24 +233,9 @@ class SpotifyService {
         return false
     }
     
-    func persistLibrarySongs(songs: [Song]) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
-        
-        for song in songs {
-            let songModel = (SongModel(song: song, isCatalog: true))
-            context.insert(songModel)
-        }
-        
-        do {
-            try context.save()
-            print("Successfuly persisted \(songs.count) \("library") songs")
-        } catch {
-            print("Could not persist songs")
-        }
-    }
-    
+    @MainActor
     func persistRecommendations(songs: [String: [Song]]) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        let context = Helpers.container.mainContext
         
         for (songID, songArray) in songs {
             for song in songArray {
@@ -278,11 +253,11 @@ class SpotifyService {
         }
     }
     
-    func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String], token: String) async {
+    func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String]) async {
         artistSeeds.removeAll()
         trackSeeds.removeAll()
         
-        if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, dislikedSongs: dislikedSongs, token: token) {
+        if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, dislikedSongs: dislikedSongs) {
             try? await persistRecommendations(songs: recommendedSongs)
             return
         }

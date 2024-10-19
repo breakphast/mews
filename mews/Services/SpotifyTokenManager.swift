@@ -33,19 +33,24 @@ class SpotifyTokenManager {
         tokenExpiryDate = UserDefaults.standard.object(forKey: "tokenExpiryDate") as? Date
     }
     
+    func ensureValidToken() async {
+        if let expiryDate = tokenExpiryDate, expiryDate > Date() {
+            // Token is still valid, no need to refresh
+            print("Token is still valid.")
+            return
+        } else {
+            // Token has expired or doesn't exist, get a new one
+            print("Token expired or doesn't exist, fetching a new token.")
+            await getAccessToken()
+        }
+    }
+    
     func getAccessToken() async {
         guard let url = URL(string: "https://accounts.spotify.com/api/token") else {
             print("Invalid URL")
             return
         }
         
-        if let token, let tokenExpiryDate, tokenExpiryDate > Date() {
-            self.token = token
-            self.tokenExpiryDate = tokenExpiryDate
-            print("Using current key.")
-            return
-        }
-        print("Getting new key.")
         let credentials = "\(clientID):\(clientSecret)".data(using: .utf8)?.base64EncodedString() ?? ""
         
         var request = URLRequest(url: url)
@@ -64,14 +69,12 @@ class SpotifyTokenManager {
                 token = tokenResponse.access_token
                 tokenExpiryDate = Date().addingTimeInterval(TimeInterval(tokenResponse.expires_in))
                 saveTokenToUserDefaults()
-                return
+                print("New token acquired.")
             } else {
                 print("Token Error: Status code \(String(describing: (response as? HTTPURLResponse)?.statusCode))")
-                return
             }
         } catch {
             print("Error retrieving access token: \(error.localizedDescription)")
-            return
         }
     }
 }
