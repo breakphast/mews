@@ -10,7 +10,7 @@ import MusicKit
 
 struct PlaylistsView: View {
     @Environment(LibraryService.self) var libraryService
-    
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         ZStack {
@@ -33,6 +33,9 @@ struct PlaylistsView: View {
                             PlaylistRow(playlist: playlist)
                                 .onTapGesture {
                                     libraryService.activePlaylist = playlist
+                                    withAnimation(.bouncy) {
+                                        dismiss()
+                                    }
                                 }
                             Divider()
                         }

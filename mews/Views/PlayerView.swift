@@ -203,7 +203,10 @@ struct PlayerView: View {
             Task { @MainActor in
                 if let liked, let avSong = playerViewModel.currentSong {
                     playerViewModel.switchingSongs = true
-                    try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: (customRecommendations ?? unusedRecSongs))
+                    
+                    guard let playlist = await libraryService.getPlaylist() else { return }
+                    
+                    try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: (customRecommendations ?? unusedRecSongs), playlist: playlist)
                     try await songModelManager.deleteSongModel(songModel: avSong)
                     try await libraryService.fetchItems()
                 } else if customFilter != nil {

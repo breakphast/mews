@@ -21,33 +21,33 @@ class ControlsService {
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
         
-        commandCenter.nextTrackCommand.addTarget { [weak self] event in
-            Task {
-                try? await self?.playerViewModel.swipeAction(liked: true, unusedRecSongs: self?.unusedRecSongs ?? [])
-            }
-            return .success
-        }
-        
-        commandCenter.previousTrackCommand.addTarget { [weak self] event in
-            Task {
-                try? await self?.playerViewModel.swipeAction(liked: false, unusedRecSongs: self?.unusedRecSongs ?? [])
-            }
-            return .success
-        }
-        
-        commandCenter.playCommand.addTarget { [weak self] event in
-            Task { @MainActor in
-                self?.playerViewModel.play()
-            }
-            return .success
-        }
-        
-        commandCenter.pauseCommand.addTarget { [weak self] event in
-            Task { @MainActor in
-                self?.playerViewModel.pauseAvPlayer()
-            }
-            return .success
-        }
+//        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+//            Task {
+//                try? await self?.playerViewModel.swipeAction(liked: true, unusedRecSongs: self?.unusedRecSongs ?? [])
+//            }
+//            return .success
+//        }
+//        
+//        commandCenter.previousTrackCommand.addTarget { [weak self] event in
+//            Task {
+//                try? await self?.playerViewModel.swipeAction(liked: false, unusedRecSongs: self?.unusedRecSongs ?? [])
+//            }
+//            return .success
+//        }
+//        
+//        commandCenter.playCommand.addTarget { [weak self] event in
+//            Task { @MainActor in
+//                self?.playerViewModel.play()
+//            }
+//            return .success
+//        }
+//        
+//        commandCenter.pauseCommand.addTarget { [weak self] event in
+//            Task { @MainActor in
+//                self?.playerViewModel.pauseAvPlayer()
+//            }
+//            return .success
+//        }
         
         
         commandCenter.nextTrackCommand.isEnabled = false

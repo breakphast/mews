@@ -61,7 +61,7 @@ final class PlayerViewModel {
     }
     
     @MainActor
-    func swipeAction(liked: Bool?, unusedRecSongs: [SongModel]) async throws {
+    func swipeAction(liked: Bool?, unusedRecSongs: [SongModel], playlist: Playlist? = nil) async throws {
         guard let liked else {
             if let recSong = unusedRecSongs.randomElement() {
                 let songURL = URL(string: recSong.previewURL)
@@ -89,17 +89,8 @@ final class PlayerViewModel {
             }
         }
         
-        if liked, let song = await LibraryService.fetchCatalogSong(title: currentSong.title, artist: currentSong.artist, url: currentSong.catalogURL) {
-            var playlist: Playlist?
-            
-            if let mewsPlaylist = await LibraryService.getMewsPlaylist() {
-                playlist = mewsPlaylist
-            } else if let mewsPlaylist = await LibraryService.createAppleMusicPlaylist(name: "Found with Mews") {
-                playlist = mewsPlaylist
-            }
-            if let playlist {
-                await LibraryService.addSongsToPlaylist(songs: [song], playlist: playlist)
-            }
+        if liked, let song = await LibraryService.fetchCatalogSong(song: currentSong), let playlist {
+            await LibraryService.addSongsToPlaylist(songs: [song], playlist: playlist)
         }
         
         return

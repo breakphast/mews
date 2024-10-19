@@ -156,12 +156,12 @@ class LibraryService {
         }
     }
     
-    static func fetchCatalogSong(title: String, artist: String, url: String) async -> Song? {
-        let searchRequest = MusicCatalogSearchRequest(term: "\(title) \(artist)", types: [Song.self])
+    static func fetchCatalogSong(song: SongModel) async -> Song? {
+        let searchRequest = MusicCatalogSearchRequest(term: "\(song.title) \(song.artist)", types: [Song.self])
         do {
             let searchResponse = try await searchRequest.response()
             
-            if let catalogSong = searchResponse.songs.first(where: { $0.url?.absoluteString == url }) {
+            if let catalogSong = searchResponse.songs.first(where: { $0.url?.absoluteString == song.catalogURL }) {
                 return catalogSong
             } else {
                 print("URLs do not match")
@@ -169,7 +169,7 @@ class LibraryService {
             }
             
         } catch {
-            print("Error fetching catalog song: \(title)")
+            print("Error fetching catalog song: \(song.title)")
         }
         
         return nil
@@ -192,14 +192,24 @@ class LibraryService {
         playlists = Array(libraryResponse.items.filter { $0.kind == .userShared })
     }
     
-    static func getMewsPlaylist() async -> Playlist? {
+    func getPlaylist() async -> Playlist? {
         let libraryRequest = MusicLibraryRequest<Playlist>()
         let libraryResponse = try? await libraryRequest.response()
         
-        if let playlist = libraryResponse?.items.first(where: { $0.name == "Found with Mews" }) {
-            return playlist
+        if let activePlaylist {
+            return activePlaylist
+        } else if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == "Found with Mews" }) {
+            return defaultPlaylist
+        } else if let newDefaultPlaylist = await createDefaultPlaylist() {
+            return newDefaultPlaylist
         }
+        
         return nil
+    }
+    
+    func createDefaultPlaylist() async -> Playlist? {
+        let library = MusicLibrary.shared
+        return try? await library.createPlaylist(name: "Found with Mews")
     }
     
     // MARK: - Library Saving Methods
@@ -237,9 +247,4 @@ class LibraryService {
         }
     }
     
-    /// Creates an Apple Music playlist with the given songs
-    static func createAppleMusicPlaylist(name: String) async -> Playlist? {
-        let library = MusicLibrary.shared
-        return try? await library.createPlaylist(name: "Found with Mews")
-    }
 }
