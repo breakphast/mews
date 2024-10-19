@@ -90,7 +90,16 @@ final class PlayerViewModel {
         }
         
         if liked, let song = await LibraryService.fetchCatalogSong(title: currentSong.title, artist: currentSong.artist, url: currentSong.catalogURL) {
-            try await MusicLibrary.shared.add(song)
+            var playlist: Playlist?
+            
+            if let mewsPlaylist = await LibraryService.getMewsPlaylist() {
+                playlist = mewsPlaylist
+            } else if let mewsPlaylist = await LibraryService.createAppleMusicPlaylist(name: "Found with Mews") {
+                playlist = mewsPlaylist
+            }
+            if let playlist {
+                await LibraryService.addSongsToPlaylist(songs: [song], playlist: playlist)
+            }
         }
         
         return

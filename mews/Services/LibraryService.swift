@@ -192,12 +192,14 @@ class LibraryService {
         playlists = Array(libraryResponse.items.filter { $0.kind == .userShared })
     }
     
-    /// Fetches a playlist named "Songs To Delete (mews)"
-    func getDeletePlaylist() async -> Playlist? {
+    static func getMewsPlaylist() async -> Playlist? {
         let libraryRequest = MusicLibraryRequest<Playlist>()
         let libraryResponse = try? await libraryRequest.response()
         
-        return libraryResponse?.items.first(where: { $0.name == "Songs To Delete (mews)" })
+        if let playlist = libraryResponse?.items.first(where: { $0.name == "Found with Mews" }) {
+            return playlist
+        }
+        return nil
     }
     
     // MARK: - Library Saving Methods
@@ -227,17 +229,17 @@ class LibraryService {
     }
     
     /// Adds a song to the "Songs To Delete (mews)" playlist
-    func addSongToDeletePlaylist(song: Song, playlist: Playlist) async {
-        let _ = try? await MusicLibrary.shared.add(song, to: playlist)
+    static func addSongsToPlaylist(songs: [Song], playlist: Playlist) async {
+        let library = MusicLibrary.shared
+        
+        for song in songs {
+            let _ = try? await library.add(song, to: playlist)
+        }
     }
     
     /// Creates an Apple Music playlist with the given songs
-    func createAppleMusicPlaylist(songs: [Song]) async {
+    static func createAppleMusicPlaylist(name: String) async -> Playlist? {
         let library = MusicLibrary.shared
-        if let playlist = try? await library.createPlaylist(name: "Songs To Delete (mews)") {
-            for song in songs {
-                let _ = try? await library.add(song, to: playlist)
-            }
-        }
+        return try? await library.createPlaylist(name: "Found with Mews")
     }
 }
