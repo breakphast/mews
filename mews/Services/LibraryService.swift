@@ -18,26 +18,12 @@ class LibraryService {
     var playlists = [Playlist]()
     var artists = [String]()
     var activePlaylist: Playlist?
-    
+    var firstLoad = false
     var savedSongs = [SongModel]()
-    
     init(songModelManager: SongModelManager) {
         self.songModelManager = songModelManager
     }
         
-    let descriptor = FetchDescriptor<SongModel>()
-    
-    @MainActor
-    func fetchItems() async throws {
-        let context = Helpers.container.mainContext
-        let items = try context.fetch(descriptor).filter { !$0.artwork.isEmpty }
-        songModelManager.savedSongs = items
-        return
-    }
-    
-    // Apple Music developer token
-    let developerToken = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkY3NjNRQjQ4TUwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJHOVJQWU1TMlBBIiwiaWF0IjoxNzI3OTkwNjI1LCJleHAiOjE3NDM1NDI2MjV9.PX9Zzu6CtlH52ieCZG7S_w-q6YnINJg6JL5mrYuJ7lSuMpOBBxR3mTxZ1wdGiDjdU-zEJ6qxB-rDk04PxiPdvQ"
-    
     // MARK: - Heavy Rotation
     
     /// Fetches the user's heavy rotation from Apple Music
@@ -51,7 +37,7 @@ class LibraryService {
             }
             
             // Step 2: Fetch the Music User Token
-            let musicUserToken = try await MusicUserTokenProvider().userToken(for: developerToken, options: .ignoreCache)
+            let musicUserToken = try await MusicUserTokenProvider().userToken(for: Helpers.developerToken, options: .ignoreCache)
             print("Music User Token: \(musicUserToken)")
             
             // Step 3: Prepare the request URL
@@ -63,7 +49,7 @@ class LibraryService {
             // Step 4: Set up the URL request with headers
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
-            request.addValue("Bearer \(developerToken)", forHTTPHeaderField: "Authorization")
+            request.addValue("Bearer \(Helpers.developerToken)", forHTTPHeaderField: "Authorization")
             request.addValue(musicUserToken, forHTTPHeaderField: "Music-User-Token")
             
             // Step 5: Execute the request

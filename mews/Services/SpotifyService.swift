@@ -164,11 +164,22 @@ class SpotifyService {
         guard !trackSeeds.isEmpty || !artistSeeds.isEmpty else {
             return nil
         }
-        let seedArtistsParam = artistSeeds.joined(separator: "%2C")
-        let seedGenresParam = genreSeed
-        let seedTracksParam = trackSeeds.joined(separator: "%2C")
         
-        guard let url = URL(string: "https://api.spotify.com/v1/recommendations?seed_artists=\(seedArtistsParam)&seed_genres=\(seedGenresParam)&seed_tracks=\(seedTracksParam)") else {
+        var queryItems = [URLQueryItem]()
+        if !artistSeeds.isEmpty {
+            queryItems.append(URLQueryItem(name: "seed_artists", value: artistSeeds.joined(separator: ",")))
+        }
+        if !genreSeed.isEmpty {
+            queryItems.append(URLQueryItem(name: "seed_genres", value: genreSeed))
+        }
+        if !trackSeeds.isEmpty {
+            queryItems.append(URLQueryItem(name: "seed_tracks", value: trackSeeds.joined(separator: ",")))
+        }
+        
+        var urlComponents = URLComponents(string: "https://api.spotify.com/v1/recommendations")
+        urlComponents?.queryItems = queryItems
+        
+        guard let url = urlComponents?.url else {
             print("Invalid URL")
             return nil
         }
@@ -176,6 +187,7 @@ class SpotifyService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
@@ -183,7 +195,7 @@ class SpotifyService {
                 print("Recs Error: Status code \(String(describing: (response as? HTTPURLResponse)?.statusCode))")
                 return nil
             }
-
+            
             let decodedResponse = try JSONDecoder().decode(SpotifyRecommendationsResult.self, from: data)
             
             var tracks = [Song]()

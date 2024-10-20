@@ -27,6 +27,16 @@ class SongModelManager {
         savedDeletedSongs = getDeletedSongs()
     }
     
+    let descriptor = FetchDescriptor<SongModel>()
+    
+    @MainActor
+    func fetchItems() async throws {
+        let context = Helpers.container.mainContext
+        let items = try context.fetch(descriptor).filter { !$0.artwork.isEmpty }
+        savedSongs = items
+        return
+    }
+    
     @MainActor
     func deleteSongModel(songModel: SongModel) async throws {
         let context = Helpers.container.mainContext

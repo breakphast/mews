@@ -141,14 +141,14 @@ struct CustomFilterView: View {
             }
             await spotifyTokenManager.ensureValidToken()
             try await libraryService.songModelManager.deleteSongModels(songModels: savedCustomSongs)
-            try await libraryService.fetchItems()
+            try await libraryService.songModelManager.fetchItems()
             await filter.assignFilters(
                 artist: filter.activeSeed == SeedOption.artist ? option : nil,
                 genre: filter.activeSeed == SeedOption.genre ? Genres.genres[option] : nil
             )
             if let recs = await filter.getCustomRecommendations() {
                 try? await filter.persistCustomRecommendations(songs: recs)
-                try? await libraryService.fetchItems()
+                try await libraryService.songModelManager.fetchItems()
                 try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: savedCustomSongs)
                 filter.customFetchingActive = false
             }
