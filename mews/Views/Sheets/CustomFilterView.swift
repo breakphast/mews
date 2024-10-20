@@ -73,7 +73,7 @@ struct CustomFilterView: View {
     }
     
     private var seedTextField: some View {
-        TextField("Search for \(filter.activeSeed == .artist ? "library artist" : "genre")", text: (filter.activeSeed == .artist ? $artistText : $genreText))
+        TextField("Search for \(filter.activeSeed == .artist ? "artist in library" : "genre")", text: (filter.activeSeed == .artist ? $artistText : $genreText))
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background {

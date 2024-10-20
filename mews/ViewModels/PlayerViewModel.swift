@@ -28,7 +28,7 @@ final class PlayerViewModel {
     var scale: CGFloat = 50
     var opacity: Double = 1
     
-    let height = UIScreen.main.bounds.height * 0.1
+    let height = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
     
     init() {
         configureAudioSession()

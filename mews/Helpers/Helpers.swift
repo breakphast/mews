@@ -30,4 +30,22 @@ struct Helpers {
     
     // Apple Music developer token
     static let developerToken = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkY3NjNRQjQ4TUwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJHOVJQWU1TMlBBIiwiaWF0IjoxNzI3OTkwNjI1LCJleHAiOjE3NDM1NDI2MjV9.PX9Zzu6CtlH52ieCZG7S_w-q6YnINJg6JL5mrYuJ7lSuMpOBBxR3mTxZ1wdGiDjdU-zEJ6qxB-rDk04PxiPdvQ"
+    
+    static let idiom = UIDevice.current.userInterfaceIdiom
+}
+
+struct OrientationChangeModifier: ViewModifier {
+    @Binding var isLandscape: Bool
+    
+    func body(content: Content) -> some View {
+        GeometryReader { geometry in
+            content
+                .onAppear {
+                    isLandscape = geometry.size.width > geometry.size.height
+                }
+                .onChange(of: geometry.size) { _, newSize in
+                    isLandscape = newSize.width > newSize.height
+                }
+        }
+    }
 }

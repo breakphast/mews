@@ -18,10 +18,11 @@ class LibraryService {
     var playlists = [Playlist]()
     var artists = [String]()
     var activePlaylist: Playlist?
-    var firstLoad = false
+    var initialLoad = false
     var savedSongs = [SongModel]()
     init(songModelManager: SongModelManager) {
         self.songModelManager = songModelManager
+        loadInitialLoad()
     }
         
     // MARK: - Heavy Rotation
@@ -173,9 +174,12 @@ class LibraryService {
     /// Fetches playlists from the user's music library
     func fetchLibraryPlaylists() async throws {
         let libraryRequest = MusicLibraryRequest<Playlist>()
-        let libraryResponse = try await libraryRequest.response()
-        
-        playlists = Array(libraryResponse.items.filter { $0.kind == .userShared })
+        do {
+            let libraryResponse = try await libraryRequest.response()
+            playlists = Array(libraryResponse.items.filter { $0.kind == .userShared })
+        } catch {
+            return
+        }
     }
     
     func getPlaylist() async -> Playlist? {
@@ -233,4 +237,14 @@ class LibraryService {
         }
     }
     
+    func saveInitialLoad() {
+        UserDefaults.standard.set(true, forKey: "initialLoad")
+        loadInitialLoad()
+    }
+    
+    func loadInitialLoad() {
+        if UserDefaults.standard.bool(forKey: "initialLoad") {
+            initialLoad = true
+        }
+    }
 }

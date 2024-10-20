@@ -44,6 +44,12 @@ extension Array where Element == SongModel {
     }
 }
 
+extension View {
+    func onOrientationChange(isLandscape: Binding<Bool>) -> some View {
+        self.modifier(OrientationChangeModifier(isLandscape: isLandscape))
+    }
+}
+
 struct Genres {
     static let genres: [String: String] = [
         "Alternative": "alternative",

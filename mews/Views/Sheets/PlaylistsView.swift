@@ -29,15 +29,21 @@ struct PlaylistsView: View {
                 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(libraryService.playlists) { playlist in
-                            PlaylistRow(playlist: playlist)
-                                .onTapGesture {
-                                    libraryService.activePlaylist = playlist
-                                    withAnimation(.bouncy) {
-                                        dismiss()
+                        if !libraryService.playlists.isEmpty {
+                            ForEach(libraryService.playlists) { playlist in
+                                PlaylistRow(playlist: playlist)
+                                    .onTapGesture {
+                                        libraryService.activePlaylist = playlist
+                                        withAnimation(.bouncy) {
+                                            dismiss()
+                                        }
                                     }
-                                }
-                            Divider()
+                                Divider()
+                            }
+                        } else {
+                            Text("No playlists in library")
+                                .font(.headline)
+                                .foregroundColor(.gray)
                         }
                     }
                 }
