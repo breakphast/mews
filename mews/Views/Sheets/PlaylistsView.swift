@@ -48,7 +48,7 @@ struct PlaylistsView: View {
                     }
                 }
             }
-            .padding()
+            .padding([.top, .horizontal])
         }
     }
 }

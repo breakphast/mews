@@ -180,11 +180,16 @@ struct PlayerView: View {
                     }
                 }
             Spacer()
-            Text("Mews")
+            Text("Mumble")
                 .font(.title)
+                .fontWeight(.heavy)
+                .foregroundStyle(.appleMusic.opacity(0.8))
+                .kerning(0.2)
             Spacer()
             Image(systemName: "person.circle")
                 .font(.largeTitle)
+                .fontWeight(.semibold)
+                .foregroundStyle(.snow)
                 .onTapGesture {
                     withAnimation {
                         playerViewModel.showSettings.toggle()
@@ -192,7 +197,6 @@ struct PlayerView: View {
                 }
         }
         .padding(.horizontal, 4)
-        .bold()
         .fontDesign(.rounded)
     }
     
