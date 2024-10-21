@@ -143,7 +143,7 @@ final class PlayerViewModel {
                 }
             }
         } else {
-            if let song = await LibraryService.fetchCatalogSong(title: "greece", artist: "drake") {
+            if let song = await LibraryService.fetchCatalogSong(title: "", artist: "kanye west") {
                 librarySongs.append(song)
             }
         }
