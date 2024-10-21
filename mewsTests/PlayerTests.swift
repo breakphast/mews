@@ -24,34 +24,13 @@ final class PlayerTests {
     
     @Test(
         "Assign song to AVPlayer",
-        .enabled(if: !songManager.savedRecSongs.isEmpty)
+        .enabled(if: !songManager.recSongs.isEmpty)
     )
     func assignSong() async {
-        if let song = songManager.savedRecSongs.first, let url = URL(string: song.catalogURL) {
+        if let song = songManager.recSongs.first, let url = URL(string: song.catalogURL) {
             let item = AVPlayerItem(url: url)
             await playerViewModel.assignPlayerSong(item: item, song: song)
             #expect(playerViewModel.currentSong == song)
         }
-    }
-    
-    @Test("Like or Dislike Song", .enabled(if: !songManager.savedRecSongs.isEmpty), arguments: [true, false])
-    func swipeSong(_ like: Bool) async {
-        guard let song = (like ? songManager.savedRecSongs.first : songManager.savedRecSongs.last) else {
-            return
-        }
-        
-        if let url = URL(string: song.catalogURL) {
-            let item = AVPlayerItem(url: url)
-            await playerViewModel.assignPlayerSong(item: item, song: song)
-            try? await playerViewModel.swipeAction(liked: like, unusedRecSongs: songManager.unusedRecSongs)
-            guard let liked = song.liked else { return }
-            
-            #expect(liked == (like ? true : false))
-        }
-        
-        if like {
-            let songInLibrary = await SpotifyService().songInLibrary(songModel: song)
-            #expect(songInLibrary)
-        }
-    }
+    }    
 }

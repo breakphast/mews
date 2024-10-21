@@ -16,14 +16,6 @@ extension Array where Element == SongModel {
         filter { !$0.isCatalog && !$0.custom }
     }
     
-    var likedRecommended: [SongModel] {
-        filter { !$0.isCatalog && $0.liked == true && !$0.custom }
-    }
-    
-    var unusedRecommended: [SongModel] {
-        filter { !$0.isCatalog && $0.liked == nil && !$0.custom }
-    }
-    
     var customRecommended: [SongModel] {
         filter { !$0.isCatalog && $0.custom }
     }
@@ -34,16 +26,11 @@ extension Array where Element == SongModel {
             library
         case .recommended:
             recommended
-        case .likedRecommended:
-            likedRecommended
-        case .unusedRecommended:
-            unusedRecommended
         case .customRecommended:
             customRecommended
         }
     }
 }
-
 
 extension View {
     func onOrientationChange(isLandscape: Binding<Bool>) -> some View {

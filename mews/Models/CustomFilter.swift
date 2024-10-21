@@ -14,7 +14,7 @@ class CustomFilter {
     let spotifyService: SpotifyService
     let songModelManager: SongModelManager
     
-    var recSongs: [SongModel] { songModelManager.savedRecSongs }
+    var recSongs: [SongModel] { songModelManager.recSongs }
     
     var dislikedSongs: [String] {
         songModelManager.savedDeletedSongs?.map { $0.url } ?? []
@@ -66,6 +66,7 @@ class CustomFilter {
         }
         
         var recommendedSongs = [String: [Song]]()
+        var indieRecs = [Song]()
         print("Getting recs based on \(artistSeed == nil ? "genre \(genreSeed ?? "")" : "artist \(artistName ?? "")")")
         if let recommendations = await fetchCustomRecommendations(token: token) {
             for recSong in recommendations {
@@ -73,7 +74,7 @@ class CustomFilter {
                     continue
                 }
                 guard await !spotifyService.songInLibrary(song: recSong) else { continue }
-                guard await !spotifyService.songInRecs(song: recSong, recSongs: songModelManager.savedRecSongs) else { continue }
+                guard await !spotifyService.songInRecs(song: recSong, recSongs: songModelManager.recSongs, indieRecommendations: indieRecs) else { continue }
                 
                 if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
                     if recommendedSongs[recSong.id.rawValue] != nil {
@@ -81,6 +82,7 @@ class CustomFilter {
                     } else {
                         recommendedSongs[recSong.id.rawValue] = [catalogSong]
                     }
+                    indieRecs.append(catalogSong)
                 }
             }
         }
@@ -157,7 +159,6 @@ class CustomFilter {
         lowRecsActive = true
         if let recommendedSongs = await getCustomRecommendations() {
             try? await persistCustomRecommendations(songs: recommendedSongs)
-            return
         }
         return
     }

@@ -149,7 +149,7 @@ struct CustomFilterView: View {
             if let recs = await filter.getCustomRecommendations() {
                 try? await filter.persistCustomRecommendations(songs: recs)
                 try await libraryService.songModelManager.fetchItems()
-                try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: savedCustomSongs)
+                try await playerViewModel.swipeAction(liked: nil, recSongs: savedCustomSongs)
                 filter.customFetchingActive = false
             }
         }

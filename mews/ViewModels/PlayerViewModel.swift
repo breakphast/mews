@@ -10,7 +10,6 @@ import MusicKit
 import Observation
 import AVFoundation
 import SwiftData
-import MediaPlayer
 
 @MainActor
 @Observable
@@ -61,9 +60,9 @@ final class PlayerViewModel {
     }
     
     @MainActor
-    func swipeAction(liked: Bool?, unusedRecSongs: [SongModel], playlist: Playlist? = nil) async throws {
+    func swipeAction(liked: Bool?, recSongs: [SongModel], playlist: Playlist? = nil) async throws {
         guard let liked else {
-            if let recSong = unusedRecSongs.randomElement() {
+            if let recSong = recSongs.randomElement() {
                 let songURL = URL(string: recSong.previewURL)
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
@@ -75,8 +74,7 @@ final class PlayerViewModel {
         
         swipeDirection = .leading
         guard let currentSong else { return }
-        currentSong.liked = liked
-        var songs = unusedRecSongs
+        var songs = recSongs
         if let index = songs.firstIndex(where: { $0.id == currentSong.id }) {
             songs.remove(at: index)
         }

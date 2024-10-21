@@ -22,8 +22,8 @@ struct PlayerView: View {
         libraryService.songModelManager
     }
     
-    private var unusedRecSongs: [SongModel] {
-        songModelManager.unusedRecSongs
+    private var recSongs: [SongModel] {
+        songModelManager.recSongs
     }
     
     private var customFilter: CustomFilter? {
@@ -67,7 +67,7 @@ struct PlayerView: View {
             .task {
                 assignNewBucketSong()
             }
-            .onChange(of: unusedRecSongs.count) { _, newCount in
+            .onChange(of: recSongs.count) { _, newCount in
                 guard newCount <= 15 else { return }
                 if let customFilter, customFilter.lowRecsActive || customFilter.customFetchingActive {
                     return
@@ -77,8 +77,8 @@ struct PlayerView: View {
                 }
             }
             .onChange(of: songModelManager.customFilterSongs.count) { _, songCount in
-                guard songCount <= 10 else { return }
-                if let customFilter, !customFilter.customFetchingActive,
+                guard songCount <= 15 else { return }
+                if let customFilter, !customFilter.customFetchingActive, !customFilter.lowRecsActive,
                    let song = songModelManager.customFilterSongs.first {
                     Task {
                         let genre = Genres.genres[song.recSeed ?? ""]
@@ -142,7 +142,7 @@ struct PlayerView: View {
         withAnimation {
             playerViewModel.image = nil
         }
-        if let song = (customRecommendations ?? unusedRecSongs).randomElement(),
+        if let song = (customRecommendations ?? recSongs).randomElement(),
            let url = URL(string: song.previewURL) {
             Task {
                 let playerItem = AVPlayerItem(url: url)
@@ -160,7 +160,7 @@ struct PlayerView: View {
             await
             spotifyService.lowRecsTrigger(
                 songs: songModelManager.savedLibrarySongs,
-                recSongs: songModelManager.savedRecSongs,
+                recSongs: songModelManager.recSongs,
                 dislikedSongs: songModelManager.savedDeletedSongs?.map { $0.url } ?? [])
             
             try await songModelManager.fetchItems()
@@ -228,14 +228,14 @@ struct PlayerView: View {
                     
                     guard let playlist = await libraryService.getPlaylist() else { return }
                     
-                    try await playerViewModel.swipeAction(liked: liked, unusedRecSongs: (customRecommendations ?? unusedRecSongs), playlist: playlist)
+                    try await playerViewModel.swipeAction(liked: liked, recSongs: (customRecommendations ?? recSongs), playlist: playlist)
                     try await songModelManager.deleteSongModel(songModel: avSong)
                     try await songModelManager.fetchItems()
                 } else if customFilter != nil {
                     withAnimation(.bouncy.speed(0.5)) {
                         songModelManager.customFilter = nil
                     }
-                    try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: unusedRecSongs)
+                    try await playerViewModel.swipeAction(liked: nil, recSongs: recSongs)
                 } else {
                     withAnimation(.bouncy.speed(0.5)) {
                         // assign custom filter regardless
@@ -245,10 +245,11 @@ struct PlayerView: View {
                     }
                     if let customRecommendations {
                         // if there are customRecs, advance to next song using custom bucket
-                        try await playerViewModel.swipeAction(liked: nil, unusedRecSongs: customRecommendations)
+                        try await playerViewModel.swipeAction(liked: nil, recSongs: customRecommendations)
                         customFilter?.active = true
                     }
                 }
+                print(songModelManager.recSongs.count)
             }
         } label: {
             Image(systemName: icon)
@@ -279,7 +280,7 @@ struct PlayerView: View {
         try await songModelManager.fetchItems()
         await libraryService.getSavedLibraryArtists()
         try await libraryService.fetchLibraryPlaylists()
-        if songModelManager.savedSongs.isEmpty || songModelManager.unusedRecSongs.count <= 10 {
+        if songModelManager.savedSongs.isEmpty || recSongs.count <= 10 {
             /// EMPTY
             var librarySongs = [Song]()
             if let recommendations = await libraryService.getHeavyRotation() {
@@ -311,8 +312,8 @@ struct PlayerView: View {
             }
             if let recommendedSongs = await spotifyService.getRecommendations(
                 using: songModelManager.savedLibrarySongs,
-                recSongs: songModelManager.savedRecSongs,
-                dislikedSongs: songModelManager.savedDeletedSongs?.map { $0.url } ?? []
+                recSongs: songModelManager.recSongs,
+                deletedSongs: songModelManager.savedDeletedSongs?.map { $0.url } ?? []
             ) {
                 try await spotifyService.persistRecommendations(songs: recommendedSongs)
                 try await songModelManager.fetchItems()
@@ -322,7 +323,7 @@ struct PlayerView: View {
                 progressMessage = "Wrapping up..."
                 progress = 1
             }
-            if let song = songModelManager.unusedRecSongs.randomElement() {
+            if let song = recSongs.randomElement() {
                 let songURL = URL(string: song.previewURL)
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)
@@ -331,7 +332,7 @@ struct PlayerView: View {
                 }
             }
         } else {
-            if let song = songModelManager.unusedRecSongs.randomElement() {
+            if let song = recSongs.randomElement() {
                 let songURL = URL(string: song.previewURL)
                 if let songURL = songURL {
                     let playerItem = AVPlayerItem(url: songURL)

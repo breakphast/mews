@@ -27,8 +27,6 @@ class SongManagerTests {
             #expect(!filteredSongs.contains(where: { !$0.isCatalog }))
         case .recommended:
             #expect(!filteredSongs.contains(where: { $0.isCatalog }))
-        case .unusedRecommended:
-            #expect(!filteredSongs.contains(where: { $0.liked != nil }))
         default:
             #expect(true)
         }

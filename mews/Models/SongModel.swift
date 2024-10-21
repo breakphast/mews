@@ -43,7 +43,5 @@ class SongModel {
 enum SongModelFilter: CaseIterable {
     case library
     case recommended
-    case likedRecommended
-    case unusedRecommended
     case customRecommended
 }
