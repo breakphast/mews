@@ -23,7 +23,9 @@ struct mewsApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                PlayerView(playerViewModel: playerViewModel)
+                if authService.status == .authorized {
+                    PlayerView(playerViewModel: playerViewModel)
+                }
             }
             .environment(authService)
             .environment(playerViewModel)

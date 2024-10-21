@@ -47,7 +47,6 @@ struct PlayerView: View {
                     customRecsSplash
                 } else {
                     if libraryService.initialLoad && authService.status == .authorized {
-                        
                         navBar
                         Spacer()
                         if playerViewModel.currentSong != nil {
@@ -59,6 +58,11 @@ struct PlayerView: View {
                         progressView
                             .padding(.horizontal, 48)
                     }
+                }
+            }
+            .overlay {
+                if authService.activeSubscription == false {
+                    inactiveOverlay
                 }
             }
             .padding()
@@ -103,6 +107,10 @@ struct PlayerView: View {
             }
         }
         .task {
+            guard authService.activeSubscription == true else {
+                return
+            }
+            
             do {
                 try await playerViewModel.authorizeAndFetch(libraryService: libraryService, spotifyService: spotifyService)
             } catch {
@@ -126,7 +134,6 @@ struct PlayerView: View {
                 playerViewModel.scale = 50
             }
     }
-    
     private var progressView: some View {
         VStack(spacing: 16) {
             Text(playerViewModel.progressMessage)
@@ -137,6 +144,17 @@ struct PlayerView: View {
             ProgressView(value: playerViewModel.progress)
                 .tint(.appleMusic.opacity(0.9))
         }
+    }
+    private var inactiveOverlay: some View {
+        ZStack {
+            Color.oreo.ignoresSafeArea()
+            
+            Text("Inactive Apple Music subscription!\nPlease subscribe to continue.")
+                .multilineTextAlignment(.center)
+                .bold()
+                .padding(.horizontal)
+        }
+        .fontDesign(.rounded)
     }
     
     private func assignNewBucketSong() {

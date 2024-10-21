@@ -395,7 +395,7 @@
 				INFOPLIST_FILE = mews/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Mumble;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
-				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Mews needs access to your Apple Music library for Discovery and Clean tools.";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Mumble needs access to your Apple Music library to generate personalized recommendations";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -434,7 +434,7 @@
 				INFOPLIST_FILE = mews/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Mumble;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
-				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Mews needs access to your Apple Music library for Discovery and Clean tools.";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Mumble needs access to your Apple Music library to generate personalized recommendations";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

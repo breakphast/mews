@@ -83,7 +83,7 @@ struct SongView: View {
                                 songInfo(song: song)
                             }
                         }
-                        .frame(maxWidth: Helpers.idiom == .pad ? (isLandscape ? 300 : 600) : .infinity)
+                        .frame(maxWidth: Helpers.idiom == .pad ? (isLandscape ? 400 : 600) : .infinity)
                     }
                 }
                 .fontDesign(.rounded)

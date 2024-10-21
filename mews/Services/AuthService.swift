@@ -12,16 +12,37 @@ import MusicKit
 @Observable
 class AuthService {
     var status: MusicAuthorization.Status
+    var activeSubscription: Bool?
+    var authError: AuthError?
     
     init() {
         let authStatus = MusicAuthorization.currentStatus
         status = authStatus
+        Task {
+            do {
+                if try await MusicSubscription.current.canPlayCatalogContent == true {
+                    activeSubscription = true
+                }
+            } catch {
+                authError = AuthError.noSubscription
+                activeSubscription = false
+            }
+        }
     }
     
     @MainActor
     private func update(status: MusicAuthorization.Status) {
         withAnimation {
-            self.status = status
+            if status == .denied {
+                self.status = status
+                Task {
+                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        if UIApplication.shared.canOpenURL(settingsURL) {
+                            UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -32,11 +53,18 @@ class AuthService {
             await update(status: status)
             return
         case .denied:
-            if let _ = URL(string: UIApplication.openSettingsURLString) {
-                
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                if await UIApplication.shared.canOpenURL(settingsURL) {
+                    await UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
+                }
             }
         default:
             print("Error.")
         }        
     }
+}
+
+enum AuthError: Error {
+    case denied
+    case noSubscription
 }
