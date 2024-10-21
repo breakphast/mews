@@ -64,7 +64,7 @@ struct SongView: View {
                                     if !playerViewModel.isAvPlaying {
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .fill(.ultraThinMaterial.opacity(0.9))
+                                                .fill(.ultraThinMaterial.opacity(0.6))
                                             Image(systemName: "pause")
                                                 .font(.title)
                                                 .fontWeight(.black)

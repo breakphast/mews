@@ -30,7 +30,9 @@ struct mewsApp: App {
             .environment(spotifyTokenManager)
             .environment(LibraryService(songModelManager: songModelManager))
             .environment(SpotifyService(tokenManager: spotifyTokenManager))
-//            .environment(ControlsService(playerViewModel, recSongs: []))
+            .task {
+                await authService.authorizeAction()
+            }
         }
         .modelContainer(for: [SongModel.self])
     }

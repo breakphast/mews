@@ -16,7 +16,6 @@ struct PlayerView: View {
     @Environment(SpotifyService.self) var spotifyService
     @Environment(\.colorScheme) var colorScheme
     @Bindable var playerViewModel: PlayerViewModel
-    @State private var progress: Double = 0
     
     private var songModelManager: SongModelManager {
         libraryService.songModelManager
@@ -39,17 +38,16 @@ struct PlayerView: View {
         customFilter == nil ? [.appleMusic, .white] : [.appleMusic, .white]
     }
     
-    @State private var progressMessage = "Scanning your library..."
-    
     var body: some View {
         ZStack {
             Color.oreo.ignoresSafeArea()
             
             VStack(spacing: 24) {
                 if let customFilter, customFilter.customFetchingActive, !customFilter.lowRecsActive {
-                    splash
+                    customRecsSplash
                 } else {
-                    if libraryService.initialLoad {
+                    if libraryService.initialLoad && authService.status == .authorized {
+                        
                         navBar
                         Spacer()
                         if playerViewModel.currentSong != nil {
@@ -105,13 +103,15 @@ struct PlayerView: View {
             }
         }
         .task {
-            Task {
-                try await authorizeAndFetch()
+            do {
+                try await playerViewModel.authorizeAndFetch(libraryService: libraryService, spotifyService: spotifyService)
+            } catch {
+                print("Unable to authorize: \(error.localizedDescription)")
             }
         }
     }
     
-    private var splash: some View {
+    private var customRecsSplash: some View {
         Image(systemName: "wand.and.stars")
             .resizable()
             .scaledToFit()
@@ -128,12 +128,13 @@ struct PlayerView: View {
     }
     
     private var progressView: some View {
-        VStack(spacing: 8) {
-            Text(progressMessage)
+        VStack(spacing: 16) {
+            Text(playerViewModel.progressMessage)
                 .bold()
                 .foregroundStyle(.snow.opacity(0.9))
                 .fontDesign(.rounded)
-            ProgressView(value: progress)
+            
+            ProgressView(value: playerViewModel.progress)
                 .tint(.appleMusic.opacity(0.9))
         }
     }
@@ -142,12 +143,10 @@ struct PlayerView: View {
         withAnimation {
             playerViewModel.image = nil
         }
-        if let song = (customRecommendations ?? recSongs).randomElement(),
-           let url = URL(string: song.previewURL) {
+        if let song = (customRecommendations ?? recSongs).randomElement() {
             Task {
-                let playerItem = AVPlayerItem(url: url)
                 if albumImage == nil {
-                    await playerViewModel.assignPlayerSong(item: playerItem, song: song)
+                    await playerViewModel.assignPlayerSong(song: song)
                 }
             }
         }
@@ -226,8 +225,11 @@ struct PlayerView: View {
                     playerViewModel.opacity = 0
                     playerViewModel.switchingSongs = true
                     
+                    #if !targetEnvironment(simulator)
                     guard let playlist = await libraryService.getPlaylist() else { return }
-                    
+                    #else
+                    let playlist: Playlist? = nil
+                    #endif
                     try await playerViewModel.swipeAction(liked: liked, recSongs: (customRecommendations ?? recSongs), playlist: playlist)
                     try await songModelManager.deleteSongModel(songModel: avSong)
                     try await songModelManager.fetchItems()
@@ -271,74 +273,5 @@ struct PlayerView: View {
         }
         .disabled(playerViewModel.switchingSongs || playerViewModel.currentSong == nil || !libraryService.initialLoad)
         .sensoryFeedback((liked ?? true) ? .impact(weight: .heavy) : .impact(weight: .light), trigger: playerViewModel.haptic)
-    }
-    
-    private func authorizeAndFetch() async throws {
-        if authService.status != .authorized {
-            await authService.authorizeAction()
-        }
-        try await songModelManager.fetchItems()
-        await libraryService.getSavedLibraryArtists()
-        try await libraryService.fetchLibraryPlaylists()
-        if songModelManager.savedSongs.isEmpty || recSongs.count <= 10 {
-            /// EMPTY
-            var librarySongs = [Song]()
-            if let recommendations = await libraryService.getHeavyRotation() {
-                // find library rotation songs in catalog and return
-                withAnimation(.bouncy) {
-                    progress = 0.25
-                }
-                for recommendation in recommendations {
-                    if let catalogSong = await LibraryService.fetchCatalogSong(title: recommendation.name, artist: recommendation.artistName) {
-                        print("Found song in Apple Catalog: \(catalogSong.artistName) - \(catalogSong.title)")
-                        if !songModelManager.savedLibrarySongs.contains(where: { $0.id == catalogSong.id.rawValue }) {
-                            librarySongs.append(catalogSong)
-                        }
-                    }
-                }
-            } else {
-                if let song = await LibraryService.fetchCatalogSong(title: "greece", artist: "drake") {
-                    librarySongs.append(song)
-                }
-            }
-            // save library songs
-            try await libraryService.persistLibrarySongs(songs: librarySongs)
-            try await songModelManager.fetchItems()
-            
-            // use catalog songs to get spotify recs and persist non catalog
-            withAnimation(.bouncy) {
-                progressMessage = "Getting recommendations..."
-                progress = 0.5
-            }
-            if let recommendedSongs = await spotifyService.getRecommendations(
-                using: songModelManager.savedLibrarySongs,
-                recSongs: songModelManager.recSongs,
-                deletedSongs: songModelManager.savedDeletedSongs?.map { $0.url } ?? []
-            ) {
-                try await spotifyService.persistRecommendations(songs: recommendedSongs)
-                try await songModelManager.fetchItems()
-            }
-            
-            withAnimation(.bouncy) {
-                progressMessage = "Wrapping up..."
-                progress = 1
-            }
-            if let song = recSongs.randomElement() {
-                let songURL = URL(string: song.previewURL)
-                if let songURL = songURL {
-                    let playerItem = AVPlayerItem(url: songURL)
-                    await playerViewModel.assignPlayerSong(item: playerItem, song: song)
-                    libraryService.saveInitialLoad()
-                }
-            }
-        } else {
-            if let song = recSongs.randomElement() {
-                let songURL = URL(string: song.previewURL)
-                if let songURL = songURL {
-                    let playerItem = AVPlayerItem(url: songURL)
-                    await playerViewModel.assignPlayerSong(item: playerItem, song: song)
-                }
-            }
-        }
     }
 }

@@ -60,6 +60,11 @@ struct CustomFilterView: View {
             .padding(.top)
         }
         .fontDesign(.rounded)
+        .task {
+            if artists.isEmpty {
+                await libraryService.getSavedLibraryArtists()
+            }
+        }
     }
     
     private var seedPicker: some View {

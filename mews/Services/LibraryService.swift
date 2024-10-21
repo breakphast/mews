@@ -20,15 +20,26 @@ class LibraryService {
     var activePlaylist: Playlist?
     var initialLoad = false
     var savedSongs = [SongModel]()
+    
     init(songModelManager: SongModelManager) {
         self.songModelManager = songModelManager
         loadInitialLoad()
+        Task {
+            await getSavedLibraryArtists()
+            
+            if let fetchedArtists = try await fetchLibraryArtists() {
+                if fetchedArtists.count > artists.count {
+                    saveLibraryArtists(artists: fetchedArtists)
+                    artists = fetchedArtists
+                }
+            }
+        }
     }
         
     // MARK: - Heavy Rotation
     
     /// Fetches the user's heavy rotation from Apple Music
-    func getHeavyRotation() async -> [(artistName: String, name: String, id: String)]? {
+    static func getHeavyRotation() async -> [(artistName: String, name: String, id: String)]? {
         do {
             // Step 1: Ensure user authorization for Apple Music
             let status = await MusicAuthorization.request()
@@ -39,7 +50,6 @@ class LibraryService {
             
             // Step 2: Fetch the Music User Token
             let musicUserToken = try await MusicUserTokenProvider().userToken(for: Helpers.developerToken, options: .ignoreCache)
-            print("Music User Token: \(musicUserToken)")
             
             // Step 3: Prepare the request URL
             guard let url = URL(string: "https://api.music.apple.com/v1/me/history/heavy-rotation") else {
@@ -167,8 +177,8 @@ class LibraryService {
         let libraryRequest = MusicLibraryRequest<Artist>()
         let libraryResponse = try await libraryRequest.response()
         
-        let artists = Array(libraryResponse.items.filter { !$0.name.isEmpty }.map { $0.name })
-        return artists.isEmpty ? nil : artists
+        let fetchedArtists = Array(libraryResponse.items.filter { !$0.name.isEmpty }.map { $0.name })
+        return fetchedArtists.isEmpty ? nil : fetchedArtists
     }
     
     /// Fetches playlists from the user's music library

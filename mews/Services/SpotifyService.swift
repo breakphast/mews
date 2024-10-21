@@ -13,7 +13,6 @@ import SwiftData
 @Observable
 class SpotifyService {
     var artistSeeds = [String]()
-    var trackSeeds = [String]()
     var genreSeed = "rap"
     var fetchingActive = false
     
@@ -95,7 +94,6 @@ class SpotifyService {
             let decodedResponse = try JSONDecoder().decode(SpotifyTrackSearchResult.self, from: data)
             
             for track in decodedResponse.tracks.items {
-                trackSeeds.append(track.id)
                 return track.id
             }
         } catch {
@@ -117,12 +115,10 @@ class SpotifyService {
         var recommendedSongs = [String: [Song]]()
         fetchingActive = true
         for song in librarySongs.shuffled() {
-            print("Using song \(song.title) for recommendations.")
+            print("Using artist \(song.artist) for recommendations.")
             
             artistSeeds.removeAll()
-            trackSeeds.removeAll()
             let _ = await fetchArtistID(artist: song.artist)
-            let _ = await fetchTrackID(artist: song.artist, title: song.title)
             
             if let recommendations = await fetchRecommendations(token: token) {
                 var indieRecommendations = [Song]()
@@ -158,7 +154,7 @@ class SpotifyService {
     }
     
     func fetchRecommendations(token: String) async -> [Song]? {
-        guard !trackSeeds.isEmpty || !artistSeeds.isEmpty else {
+        guard !artistSeeds.isEmpty else {
             return nil
         }
         
@@ -168,9 +164,6 @@ class SpotifyService {
         }
         if !genreSeed.isEmpty {
             queryItems.append(URLQueryItem(name: "seed_genres", value: genreSeed))
-        }
-        if !trackSeeds.isEmpty {
-            queryItems.append(URLQueryItem(name: "seed_tracks", value: trackSeeds.joined(separator: ",")))
         }
         
         var urlComponents = URLComponents(string: "https://api.spotify.com/v1/recommendations")
@@ -265,6 +258,7 @@ class SpotifyService {
         do {
             try context.save()
             print("Successfully persisted \(songs.values.flatMap({ $0 }).count) recommended songs")
+            return
         } catch {
             print("Could not persist songs")
         }
@@ -272,7 +266,6 @@ class SpotifyService {
     
     func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String]) async {
         artistSeeds.removeAll()
-        trackSeeds.removeAll()
         
         if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, deletedSongs: dislikedSongs) {
             try? await persistRecommendations(songs: recommendedSongs)
