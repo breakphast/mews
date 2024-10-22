@@ -60,12 +60,12 @@ struct PlayerView: View {
                     }
                 }
             }
+            .padding()
             .overlay {
                 if authService.activeSubscription == false {
                     inactiveOverlay
                 }
             }
-            .padding()
             .task {
                 assignNewBucketSong()
             }
@@ -107,11 +107,12 @@ struct PlayerView: View {
             }
         }
         .task {
-            guard authService.activeSubscription == true else {
-                return
-            }
-            
             do {
+                if authService.status != .authorized { await authService.authorizeAction() }
+                guard await authService.isActiveSubscription() == true else {
+                    authService.activeSubscription = false
+                    return
+                }
                 try await playerViewModel.authorizeAndFetch(libraryService: libraryService, spotifyService: spotifyService)
             } catch {
                 print("Unable to authorize: \(error.localizedDescription)")

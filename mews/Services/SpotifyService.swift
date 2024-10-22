@@ -143,7 +143,7 @@ class SpotifyService {
                     recommendedSongs[song.id] = indieRecommendations
                 }
                 
-                print("Added recommendations for \(song.title), total recommendations now: \(recommendedSongs.values.flatMap({ $0 }).count)")
+                print("Added recommendations for \(song.artist), total recommendations now: \(recommendedSongs.values.flatMap({ $0 }).count)")
                 fetchingActive = false
                 return recommendedSongs
             }

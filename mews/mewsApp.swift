@@ -23,18 +23,13 @@ struct mewsApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if authService.status == .authorized {
-                    PlayerView(playerViewModel: playerViewModel)
-                }
+                PlayerView(playerViewModel: playerViewModel)
             }
             .environment(authService)
             .environment(playerViewModel)
             .environment(spotifyTokenManager)
             .environment(LibraryService(songModelManager: songModelManager))
             .environment(SpotifyService(tokenManager: spotifyTokenManager))
-            .task {
-                await authService.authorizeAction()
-            }
         }
         .modelContainer(for: [SongModel.self])
     }

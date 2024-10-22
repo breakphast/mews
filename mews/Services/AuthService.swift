@@ -18,16 +18,13 @@ class AuthService {
     init() {
         let authStatus = MusicAuthorization.currentStatus
         status = authStatus
-        Task {
-            do {
-                if try await MusicSubscription.current.canPlayCatalogContent == true {
-                    activeSubscription = true
-                }
-            } catch {
-                authError = AuthError.noSubscription
-                activeSubscription = false
-            }
+    }
+    
+    func isActiveSubscription() async -> Bool {
+        if let subsription = try? await MusicSubscription.current {
+            return subsription.canPlayCatalogContent
         }
+        return false
     }
     
     @MainActor
@@ -42,6 +39,8 @@ class AuthService {
                         }
                     }
                 }
+            } else {
+                self.status = status
             }
         }
     }
