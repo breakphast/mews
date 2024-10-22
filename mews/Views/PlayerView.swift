@@ -38,6 +38,8 @@ struct PlayerView: View {
         customFilter == nil ? [.appleMusic, .white] : [.appleMusic, .white]
     }
     
+    @State private var showToast = false
+    
     var body: some View {
         ZStack {
             Color.oreo.ignoresSafeArea()
@@ -53,6 +55,7 @@ struct PlayerView: View {
                             SongView(opacity: $playerViewModel.opacity)
                             Spacer()
                         }
+
                         buttons
                     } else {
                         progressView
@@ -62,9 +65,11 @@ struct PlayerView: View {
             }
             .padding()
             .overlay {
+                #if !targetEnvironment(simulator)
                 if authService.activeSubscription == false {
                     inactiveOverlay
                 }
+                #endif
             }
             .task {
                 assignNewBucketSong()
@@ -109,13 +114,25 @@ struct PlayerView: View {
         .task {
             do {
                 if authService.status != .authorized { await authService.authorizeAction() }
+                #if !targetEnvironment(simulator)
                 guard await authService.isActiveSubscription() == true else {
                     authService.activeSubscription = false
                     return
                 }
-                try await playerViewModel.authorizeAndFetch(libraryService: libraryService, spotifyService: spotifyService)
+                #endif
+                try await playerViewModel.authorizeAndFetch(
+                    libraryService: libraryService,
+                    spotifyService: spotifyService
+                )
             } catch {
                 print("Unable to authorize: \(error.localizedDescription)")
+            }
+        }
+        .overlay {
+            if showToast {
+                ToastView()
+                    .transition(.move(edge: .top))
+                    .frame(maxHeight: .infinity, alignment: .top)
             }
         }
     }
@@ -173,6 +190,18 @@ struct PlayerView: View {
     
     // MARK: - Functions
     
+    private func triggerToast() {
+        withAnimation(.bouncy) {
+            showToast.toggle()
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.smooth) {
+                showToast = false
+            }
+        }
+    }
+    
     private func lowRecsTrigger() {
         Task {
             await
@@ -193,7 +222,10 @@ struct PlayerView: View {
                     withAnimation(.bouncy) {
                         playerViewModel.showFilters.toggle()
                         if customFilter == nil {
-                            songModelManager.customFilter = CustomFilter(spotifyService: spotifyService, songModelManager: songModelManager)
+                            songModelManager.customFilter = CustomFilter(
+                                spotifyService: spotifyService,
+                                songModelManager: songModelManager
+                            )
                         }
                     }
                 }
@@ -250,12 +282,13 @@ struct PlayerView: View {
                     let playlist: Playlist? = nil
                     #endif
                     try await playerViewModel.swipeAction(liked: liked, recSongs: (customRecommendations ?? recSongs), playlist: playlist)
+                    
+                    if liked { triggerToast() }
+                    
                     try await songModelManager.deleteSongModel(songModel: avSong)
                     try await songModelManager.fetchItems()
                 } else if customFilter != nil {
-                    withAnimation(.bouncy.speed(0.5)) {
-                        songModelManager.customFilter = nil
-                    }
+                    withAnimation(.bouncy.speed(0.5)) { songModelManager.customFilter = nil }
                     try await playerViewModel.swipeAction(liked: nil, recSongs: recSongs)
                 } else {
                     withAnimation(.bouncy.speed(0.5)) {
