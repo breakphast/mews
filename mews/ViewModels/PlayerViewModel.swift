@@ -30,6 +30,7 @@ final class PlayerViewModel {
     var progressMessage = "Scanning your library..."
     
     let height = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
+    var selectedSeed: String?
     
     init() {
         configureAudioSession()

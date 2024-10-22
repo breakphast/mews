@@ -51,6 +51,7 @@ class CustomFilter {
         
         if let genre {
             artistSeed = nil
+            artistName = nil
             genreSeed = genre
             print("Assigned Genre")
             return

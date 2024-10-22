@@ -17,6 +17,7 @@ struct CustomFilterView: View {
     @State private var artistText = ""
     @State private var genreText = ""
     @FocusState private var focus: Bool
+    @State private var selectedSeed: String?
     
     private var artists: [String] {
         libraryService.artists.filter { artist in
@@ -61,6 +62,9 @@ struct CustomFilterView: View {
         }
         .fontDesign(.rounded)
         .task {
+            if let seed = savedCustomSongs.first?.recSeed {
+                selectedSeed = seed
+            }
             if artists.isEmpty {
                 await libraryService.getSavedLibraryArtists()
             }
@@ -97,6 +101,19 @@ struct CustomFilterView: View {
     private var seedsScrollView: some View {
         ScrollView {
             VStack(alignment: .leading) {
+                if let selectedSeed {
+                    VStack {
+                        HStack {
+                            Text(selectedSeed)
+                            Spacer()
+                            Image(systemName: "wand.and.stars")
+                        }
+                        .foregroundStyle(.appleMusic.opacity(0.9))
+                        .font(.title3.bold())
+                    }
+                    Divider()
+                }
+                
                 if seedOptions.isEmpty {
                     Text("No results found")
                         .font(.headline)
@@ -112,10 +129,15 @@ struct CustomFilterView: View {
                                     Text(option)
                                         .fontWeight(.semibold)
                                     Spacer()
+                                    if option == selectedSeed {
+                                        Image(systemName: "wand.and.stars")
+                                            .foregroundStyle(.appleMusic)
+                                            .bold()
+                                    }
                                 }
                                 .font(.title3)
                             }
-                            .tint(.snow)
+                            .tint(option == selectedSeed ? .appleMusic.opacity(0.9) : .snow)
                             
                             Divider()
                         }
@@ -156,7 +178,7 @@ struct CustomFilterView: View {
                 try await libraryService.songModelManager.fetchItems()
                 try await playerViewModel.swipeAction(liked: nil, recSongs: savedCustomSongs)
                 filter.customFetchingActive = false
-            }
+            }            
         }
     }
 }

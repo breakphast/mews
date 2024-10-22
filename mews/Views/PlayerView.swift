@@ -99,7 +99,9 @@ struct PlayerView: View {
                 }
             }
             .sheet(isPresented: $playerViewModel.showFilters) {
-                if let customFilter, !customFilter.customFetchingActive, !customFilter.active {
+                if let customFilter,
+                   !customFilter.customFetchingActive,
+                   !customFilter.active && songModelManager.customFilterSongs.isEmpty {
                     songModelManager.customFilter = nil
                 }
             } content: {
