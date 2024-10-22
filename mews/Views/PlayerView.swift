@@ -197,7 +197,7 @@ struct PlayerView: View {
                     }
                 }
             Spacer()
-            Text("Mumble")
+            Text("DiscoMuse")
                 .font(.title)
                 .fontWeight(.heavy)
                 .foregroundStyle(.appleMusic.opacity(0.8))
