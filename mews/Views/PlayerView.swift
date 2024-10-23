@@ -135,7 +135,7 @@ struct PlayerView: View {
         withAnimation {
             playerViewModel.image = nil
         }
-        let songs = customFilter?.active == true && !(customFilter?.songs.isEmpty ?? true) ? customFilter!.songs : songModelManager.recSongs
+        let songs = customFilterService.active == true && !(customFilter?.songs.isEmpty ?? true) ? customFilter!.songs : songModelManager.recSongs
 
         if let song = songs.randomElement() {
             Task {

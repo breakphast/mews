@@ -12,6 +12,7 @@ import SwiftData
 @Observable
 class CustomFilterService {
     var customFilterModel: CustomFilterModel?
+    var active = false
     
     let songModelManager: SongModelManager
     let spotifyTokenManager: SpotifyTokenManager
@@ -58,7 +59,7 @@ class CustomFilterService {
         if let genre {
             customFilterModel?.artistSeedID = nil
             customFilterModel?.artistSeedName = nil
-            customFilterModel?.genreSeed = genre
+            customFilterModel?.genreSeed = Genres.genres[genre]
             print("Assigned Genre")
             return
         }
@@ -158,7 +159,7 @@ class CustomFilterService {
         
         do {
             try context.save()
-            customFilterModel.active = true
+            active = true
             print("Successfully persisted \(songs.values.flatMap({ $0 }).count) custom recommended songs")
             print("Custom filter song count: \(customFilterModel.songs.count)")
         } catch {
@@ -185,7 +186,7 @@ class CustomFilterService {
         let context = Helpers.container.mainContext
         let items = try context.fetch(filterDescriptor)
         if let filter = items.first {
-            filter.active = false
+            active = false
             customFilterModel = filter
         }
         return

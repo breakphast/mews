@@ -27,8 +27,8 @@ struct CustomPicker: View {
             .background {
                 ZStack {
                     if activeSeed == seed.rawValue {
-                        Color.snow.cornerRadius(12)
-                            .shadow(color: .oreo.opacity(0.1), radius: 4, x: seed == .artist ? 2 : -2, y: 2)
+                        Color.oreo.cornerRadius(12)
+                            .shadow(color: .snow.opacity(0.1), radius: 4, x: seed == .artist ? 2 : -2, y: 2)
                             .matchedGeometryEffect(id: "SEED", in: animation)
                     }
                 }

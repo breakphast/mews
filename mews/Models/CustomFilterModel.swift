@@ -20,7 +20,6 @@ class CustomFilterModel: Identifiable {
     var genreSeed: String?
     var playlistSeed: String?
     
-    var active = false
     var activeSeed: String = SeedOption.artist.rawValue
     
     init() {

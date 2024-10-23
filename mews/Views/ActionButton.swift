@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import MusicKit
 
 struct ActionButton: View {
     @Environment(PlayerViewModel.self) var playerViewModel
@@ -22,7 +23,7 @@ struct ActionButton: View {
     }
     
     var activeSongs: [SongModel] {
-        customFilter?.active == true && !(customFilter?.songs.isEmpty ?? true) ? customFilter!.songs : libraryService.songModelManager.recSongs
+        customFilterService.active == true && !(customFilter?.songs.isEmpty ?? true) ? customFilter!.songs : libraryService.songModelManager.recSongs
     }
     
     var body: some View {
@@ -50,8 +51,6 @@ struct ActionButton: View {
                 let playlist: Playlist? = nil
                 #endif
                                 
-                if liked { triggerToast() }
-                
                 if let song = playerViewModel.currentSong {
                     try await libraryService.songModelManager.deleteSongModel(songModel: song)
                     try await libraryService.songModelManager.fetchItems()
@@ -62,6 +61,8 @@ struct ActionButton: View {
                     recSongs: activeSongs,
                     playlist: playlist
                 )
+                
+                if liked { triggerToast() }
             }
         } label: {
             Image(systemName: liked ? "heart.fill" : "xmark")
@@ -86,15 +87,15 @@ struct ActionButton: View {
         Button {
             playerViewModel.haptic.toggle()
             if let customFilter {
-                if !customFilter.active {
+                if !customFilterService.active {
                     if customFilter.songs.isEmpty {
                         triggerFilters()
                     } else {
-                        customFilter.active = true
+                        customFilterService.active = true
                         advanceWithCustomSongs(customFilter)
                     }
                 } else {
-                    customFilter.active = false
+                    customFilterService.active = false
                     advanceWithCustomSongs(customFilter)
                 }
             } else {
@@ -104,15 +105,15 @@ struct ActionButton: View {
             Image(systemName: "wand.and.stars")
                 .font(.largeTitle)
                 .foregroundStyle(.appleMusic)
-                .grayscale((customFilter?.active ?? false) ? 0 : 1)
+                .grayscale(customFilterService.active ? 0 : 1)
                 .padding()
                 .background {
                     Circle()
-                        .fill(.white.opacity((customFilter?.active ?? false) ? 1 : 0.8))
+                        .fill(.white.opacity(customFilterService.active ? 1 : 0.8))
                         .frame(width: size, height: size)
                         .overlay {
                             Circle()
-                                .stroke(.white.opacity((customFilter?.active ?? false) ? 1 : 0.8), lineWidth: 2)
+                                .stroke(.white.opacity(customFilterService.active ? 1 : 0.8), lineWidth: 2)
                                 .frame(width: size, height: size)
                         }
                         .shadow(color: .snow.opacity(colorScheme == .light ? 0.3 : 0.05), radius: 6, x: 2, y: 4)
@@ -139,13 +140,12 @@ struct ActionButton: View {
     }
     
     private func triggerToast() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation(.bouncy) {
-                playerViewModel.showToast = true
-            }
+        withAnimation(.bouncy) {
+            playerViewModel.showToast = false
+            playerViewModel.showToast = true
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation(.smooth) {
                 playerViewModel.showToast = false
             }

@@ -97,13 +97,6 @@ struct SongView: View {
             }
             .onOrientationChange(isLandscape: $isLandscape)
             .onChange(of: song) { _, newSong in
-                // song change trigger
-                guard !(customFilterService.lowRecsActive) else {
-                    opacity = 1
-                    playerViewModel.switchingSongs = false
-                    return
-                }
-                
                 Task {
                     withAnimation(.bouncy.speed(0.8)){
                         playerViewModel.currentSong = nil
