@@ -10,7 +10,7 @@ import SwiftData
 import MusicKit
 
 @Model
-class SongModel {
+class SongModel: Identifiable {
     var id: String = ""
     var title: String = ""
     var artist: String = ""
@@ -25,6 +25,8 @@ class SongModel {
     var explicit: Bool? = nil
     var custom: Bool = false
     var recSeed: String? = ""
+    
+    var customFilter: CustomFilterModel?
     
     init(song: Song, isCatalog: Bool) {
         id = song.id.rawValue

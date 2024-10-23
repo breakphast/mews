@@ -18,7 +18,6 @@ struct mewsApp: App {
     @State private var songModelManager = SongModelManager()
     
     @Environment(\.modelContext) var modelContext
-    @Query var songModels: [SongModel]
     
     var body: some Scene {
         WindowGroup {
@@ -30,8 +29,10 @@ struct mewsApp: App {
             .environment(spotifyTokenManager)
             .environment(LibraryService(songModelManager: songModelManager))
             .environment(SpotifyService(tokenManager: spotifyTokenManager))
+            .environment(CustomFilterService(songModelManager: songModelManager, spotifyTokenManager: spotifyTokenManager))
+            
         }
-        .modelContainer(for: [SongModel.self])
+        .modelContainer(for: [SongModel.self, CustomFilterModel.self])
     }
 }
 

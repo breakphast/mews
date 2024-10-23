@@ -13,6 +13,7 @@ struct CustomFilterView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(SpotifyTokenManager.self) var spotifyTokenManager
     @Environment(SpotifyService.self) var spotifyService
+    @Environment(CustomFilterService.self) var customFilterService
     @Environment(\.dismiss) var dismiss
     @State private var artistText = ""
     @State private var genreText = ""
@@ -26,7 +27,7 @@ struct CustomFilterView: View {
     }
     
     private var seedOptions: [String] {
-        switch filter.activeSeed {
+        switch SeedOption(rawValue: filter.activeSeed) {
         case .artist:
             return artists.filter { artist in
                 artistText.isEmpty || artist.lowercased().contains(artistText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
@@ -35,14 +36,20 @@ struct CustomFilterView: View {
             return Genres.genres.keys.filter { genre in
                 genreText.isEmpty || genre.lowercased().contains(genreText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
             }.sorted { $1 > $0 }
+        case .none:
+            return []
         }
     }
     
     private var savedCustomSongs: [SongModel] {
-        libraryService.songModelManager.customFilterSongs
+        customFilterService.customFilterModel?.songs ?? []
     }
     
-    @Bindable var filter: CustomFilter
+    private var token: String? {
+        customFilterService.token
+    }
+    
+    @Bindable var filter: CustomFilterModel
     var body: some View {
         ZStack {
             Color.oreo.ignoresSafeArea()
@@ -71,18 +78,8 @@ struct CustomFilterView: View {
         }
     }
     
-    private var seedPicker: some View {
-        Picker(selection: $filter.activeSeed, label: Text("Filter by")) {
-            Text("Artist").tag(SeedOption.artist)
-            Text("Genre").tag(SeedOption.genre)
-        }
-        .pickerStyle(.segmented)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.horizontal, 48)
-    }
-    
     private var seedTextField: some View {
-        TextField("Search for \(filter.activeSeed == .artist ? "artist in library" : "genre")", text: (filter.activeSeed == .artist ? $artistText : $genreText))
+        TextField("Search for \(filter.activeSeed == SeedOption.artist.rawValue ? "artist in library" : "genre")", text: (filter.activeSeed == SeedOption.artist.rawValue ? $artistText : $genreText))
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background {
@@ -123,7 +120,7 @@ struct CustomFilterView: View {
                         VStack {
                             Button {
                                 focus = false
-                                customSeedAction(option: option)
+                                selectCustomSeed(option: option)
                             } label: {
                                 HStack {
                                     Text(option)
@@ -152,41 +149,38 @@ struct CustomFilterView: View {
         }
     }
     
-    private func customSeedAction(option: String) {
+    private func selectCustomSeed(option: String) {
         Task {
-            filter.customFetchingActive = true
+            customFilterService.customFetchingActive = true
             playerViewModel.pauseAvPlayer()
             withAnimation {
                 dismiss()
             }
-            if filter.activeSeed == .artist,
-               let artist = await spotifyService.fetchArtistID(artist: option),
+            guard let token else { return }
+            if filter.activeSeed == SeedOption.artist.rawValue,
+               let artist = await SpotifyService.fetchArtistID(artist: option, token: token),
                !option.lowercased().contains(artist.artistName.lowercased()) {
                 print("Invalid Artist", [artist.artistName, option])
-                filter.customFetchingActive = false
+                customFilterService.customFetchingActive = false
                 return
             }
+            
             await spotifyTokenManager.ensureValidToken()
             try await libraryService.songModelManager.deleteSongModels(songModels: savedCustomSongs)
             try await libraryService.songModelManager.fetchItems()
-            await filter.assignFilters(
-                artist: filter.activeSeed == SeedOption.artist ? option : nil,
-                genre: filter.activeSeed == SeedOption.genre ? Genres.genres[option] : nil
+            await customFilterService.assignFilters(
+                artist: filter.activeSeed == SeedOption.artist.rawValue ? option : nil,
+                genre: filter.activeSeed == SeedOption.genre.rawValue ? option : nil
             )
-            if let recs = await filter.getCustomRecommendations() {
-                try? await filter.persistCustomRecommendations(songs: recs)
+            if let recs = await customFilterService.getCustomRecommendations() {
+                try? await customFilterService.persistCustomRecommendations(songs: recs)
                 try await libraryService.songModelManager.fetchItems()
                 try await playerViewModel.swipeAction(liked: nil, recSongs: savedCustomSongs)
-                filter.customFetchingActive = false
+                customFilterService.customFetchingActive = false
             }
         }
     }
 }
-
-//#Preview {
-//    CustomFilterView()
-//        .environment(LibraryService())
-//}
 
 enum SeedOption: String, CaseIterable {
     case artist = "Artist"

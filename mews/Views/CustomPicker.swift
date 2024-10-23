@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CustomPicker: View {
     @Namespace var animation
-    @Binding var activeSeed: SeedOption
+    @Binding var activeSeed: String
     
     var body: some View {
         HStack {
@@ -26,22 +26,22 @@ struct CustomPicker: View {
             .padding(.horizontal, 24)
             .background {
                 ZStack {
-                    if activeSeed == seed {
-                        Color.oreo.cornerRadius(12)
-                            .shadow(color: .snow.opacity(0.15), radius: 4, x: seed == .artist ? 2 : -2, y: 2)
+                    if activeSeed == seed.rawValue {
+                        Color.snow.cornerRadius(12)
+                            .shadow(color: .oreo.opacity(0.1), radius: 4, x: seed == .artist ? 2 : -2, y: 2)
                             .matchedGeometryEffect(id: "SEED", in: animation)
                     }
                 }
             }
-            .foregroundStyle(activeSeed == seed ? .appleMusic.opacity(0.7) : .gray)
+            .foregroundStyle(activeSeed == seed.rawValue ? .appleMusic.opacity(0.7) : .gray)
             .onTapGesture {
                 withAnimation(.bouncy) {
-                    activeSeed = seed
+                    activeSeed = seed.rawValue
                 }
             }
     }
 }
 
 #Preview {
-    CustomPicker(activeSeed: .constant(.artist))
+    CustomPicker(activeSeed: .constant(SeedOption.artist.rawValue))
 }

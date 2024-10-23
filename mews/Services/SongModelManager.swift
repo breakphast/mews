@@ -16,9 +16,6 @@ class SongModelManager {
     var savedLibrarySongs: [SongModel] { savedSongs.library }
     var recSongs: [SongModel] { savedSongs.recommended }
     
-    var customFilter: CustomFilter?
-    var customFilterSongs: [SongModel] { savedSongs.customRecommended }
-    
     var savedDeletedSongs: [(title: String, url: String)]?
     
     init() {
@@ -45,7 +42,7 @@ class SongModelManager {
         
         do {
             try context.save()
-            print("Successfully deleted song model.")
+            print("Successfully deleted song model.", songModel.title)
         } catch {
             print("Failed to delete song model:", error)
             throw error
@@ -56,16 +53,8 @@ class SongModelManager {
     
     @MainActor
     func deleteSongModels(songModels: [SongModel]) async throws {
-        let context = Helpers.container.mainContext
-
         for songModel in songModels {
-            context.delete(songModel)
-        }
-
-        do {
-            try context.save()
-        } catch {
-            print("Failed to delete songs:", error)
+            try await deleteSongModel(songModel: songModel)
         }
     }
     

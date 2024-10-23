@@ -19,22 +19,19 @@ class SpotifyService {
     let spotifyTokenManager: SpotifyTokenManager
     
     var container: ModelContainer {
-        let container = try! ModelContainer(for: SongModel.self)
+        let container = try! ModelContainer(for: SongModel.self, CustomFilterModel.self)
         return container
     }
     
     init(tokenManager: SpotifyTokenManager) {
         self.spotifyTokenManager = tokenManager
     }
+    
+    var token: String? {
+        spotifyTokenManager.token
+    }
         
-    func fetchArtistID(artist: String) async -> (artistName: String, artistID: String)? {
-        await spotifyTokenManager.ensureValidToken()
-        
-        guard let token = spotifyTokenManager.token else {
-            print("No valid access token.")
-            return nil
-        }
-        
+    static func fetchArtistID(artist: String, token: String) async -> (artistName: String, artistID: String)? {
         let encodedArtistName = artist.lowercased().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         guard let url = URL(string: "https://api.spotify.com/v1/search?q=\(encodedArtistName)&type=artist&limit=1") else {
             print("Invalid URL")
@@ -54,8 +51,7 @@ class SpotifyService {
             
             let decodedResponse = try JSONDecoder().decode(SpotifySearchResult.self, from: data)
             if let firstArtist = decodedResponse.artists.items.first {
-                artistSeeds.append(firstArtist.id)  // Assuming artistSeeds is a global or class-level array
-                return (artistName: firstArtist.name, artistID: firstArtist.id)  // Return name and ID as a tuple
+                return (artistName: firstArtist.name, artistID: firstArtist.id)
             }
         } catch {
             print("Error fetching artist ID: \(error.localizedDescription)")
@@ -118,7 +114,9 @@ class SpotifyService {
             print("Using artist \(song.artist) for recommendations.")
             
             artistSeeds.removeAll()
-            let _ = await fetchArtistID(artist: song.artist)
+            if let spotifyArtist = await Self.fetchArtistID(artist: song.artist, token: token) {
+                artistSeeds.append(spotifyArtist.artistID)
+            }
             
             if let recommendations = await fetchRecommendations(token: token) {
                 var indieRecommendations = [Song]()
@@ -126,9 +124,8 @@ class SpotifyService {
                     guard let url = recSong.url?.absoluteString, !deletedSongs.contains(url) else {
                         continue
                     }
-                    guard await !songInLibrary(song: recSong) else { continue }
-                    
-                    guard await !songInRecs(song: recSong, recSongs: recSongs, indieRecommendations: indieRecommendations) else {
+                    guard await !Self.songInLibrary(song: recSong) else { continue }
+                    guard await !Self.songInRecs(song: recSong, recSongs: recSongs, indieRecommendations: indieRecommendations) else {
                         continue
                     }
                     
@@ -201,7 +198,7 @@ class SpotifyService {
         }
     }
     
-    func songInLibrary(song: Song) async -> Bool {
+    static func songInLibrary(song: Song) async -> Bool {
         var libraryRequest = MusicLibraryRequest<Song>()
         libraryRequest.limit = 20
         libraryRequest.filter(text: song.title)
@@ -216,7 +213,7 @@ class SpotifyService {
         return false
     }
     
-    func songInRecs(song: Song, recSongs: [SongModel], indieRecommendations: [Song]) async -> Bool {
+    static func songInRecs(song: Song, recSongs: [SongModel], indieRecommendations: [Song]) async -> Bool {
         if recSongs.contains(where: { $0.id == song.id.rawValue }) {
             return true
         }

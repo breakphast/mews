@@ -10,9 +10,11 @@ import MusicKit
 import SwiftData
 
 @Observable
-class CustomFilter {
-    let spotifyService: SpotifyService
+class CustomFilterService {
+    var customFilterModel: CustomFilterModel?
+    
     let songModelManager: SongModelManager
+    let spotifyTokenManager: SpotifyTokenManager
     
     var recSongs: [SongModel] { songModelManager.recSongs }
     
@@ -20,46 +22,50 @@ class CustomFilter {
         songModelManager.savedDeletedSongs?.map { $0.url } ?? []
     }
     
-    init(spotifyService: SpotifyService, songModelManager: SongModelManager) {
-        self.spotifyService = spotifyService
+    init(songModelManager: SongModelManager, spotifyTokenManager: SpotifyTokenManager) {
         self.songModelManager = songModelManager
+        self.spotifyTokenManager = spotifyTokenManager
+        Task {
+            try? await fetchCustomFilter()
+        }
     }
-    
-    var artistName: String?
-    var artistSeed: String?
-    var genreSeed: String?
-    
+        
     var customFetchingActive = false
     var lowRecsActive = false
     
-    var activeSeed: SeedOption = .artist
-    var active = false
-    
-    var token: String? { spotifyService.spotifyTokenManager.token }
+    var token: String? { spotifyTokenManager.token }
     
     @MainActor
     func assignFilters(artist: String? = nil, genre: String? = nil) async {
         if let artist {
-            genreSeed = nil
-            if let artistID = await spotifyService.fetchArtistID(artist: artist) {
-                artistName = artist
-                artistSeed = artistID.artistID
-                print("Assigned Artist \(artist)", artistID.artistID)
+            customFilterModel?.genreSeed = nil
+            
+            await spotifyTokenManager.ensureValidToken()
+            
+            guard let token = spotifyTokenManager.token else {
+                print("No valid access token.")
+                return
+            }
+            
+            if let spotifyArtist = await SpotifyService.fetchArtistID(artist: artist, token: token) {
+                customFilterModel?.artistSeedName = spotifyArtist.artistName
+                customFilterModel?.artistSeedID = spotifyArtist.artistID
+                print("Assigned Artist \(spotifyArtist.artistName)", spotifyArtist.artistID)
             }
             return
         }
         
         if let genre {
-            artistSeed = nil
-            artistName = nil
-            genreSeed = genre
+            customFilterModel?.artistSeedID = nil
+            customFilterModel?.artistSeedName = nil
+            customFilterModel?.genreSeed = genre
             print("Assigned Genre")
             return
         }
     }
     
     func getCustomRecommendations() async -> [String: [Song]]? {
-        await spotifyService.spotifyTokenManager.ensureValidToken()
+        await spotifyTokenManager.ensureValidToken()
         
         guard let token else {
             print("No valid access token.")
@@ -68,14 +74,14 @@ class CustomFilter {
         
         var recommendedSongs = [String: [Song]]()
         var indieRecs = [Song]()
-        print("Getting recs based on \(artistSeed == nil ? "genre \(genreSeed ?? "")" : "artist \(artistName ?? "")")")
+        print("Getting recs based on \(customFilterModel?.artistSeedID == nil ? "genre \(customFilterModel?.genreSeed ?? "")" : "artist \(customFilterModel?.artistSeedName ?? "")")")
         if let recommendations = await fetchCustomRecommendations(token: token) {
             for recSong in recommendations {
                 guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
                     continue
                 }
-                guard await !spotifyService.songInLibrary(song: recSong) else { continue }
-                guard await !spotifyService.songInRecs(song: recSong, recSongs: songModelManager.recSongs, indieRecommendations: indieRecs) else { continue }
+                guard await !SpotifyService.songInLibrary(song: recSong) else { continue }
+                guard await !SpotifyService.songInRecs(song: recSong, recSongs: songModelManager.recSongs, indieRecommendations: indieRecs) else { continue }
                 
                 if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
                     if recommendedSongs[recSong.id.rawValue] != nil {
@@ -93,10 +99,10 @@ class CustomFilter {
     
     func fetchCustomRecommendations(token: String) async -> [Song]? {
         var queryItems = [URLQueryItem]()
-        if let artistSeed = artistSeed {
-            queryItems.append(URLQueryItem(name: "seed_artists", value: artistSeed))
+        if let id = customFilterModel?.artistSeedID {
+            queryItems.append(URLQueryItem(name: "seed_artists", value: id))
         }
-        if let genreSeed = genreSeed {
+        if let genreSeed = customFilterModel?.genreSeed {
             queryItems.append(URLQueryItem(name: "seed_genres", value: genreSeed))
         }
         
@@ -135,28 +141,58 @@ class CustomFilter {
     }
     
     func persistCustomRecommendations(songs: [String: [Song]]) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        guard let customFilterModel else { return }
+        
+        let context = ModelContext(try ModelContainer(for: SongModel.self, CustomFilterModel.self))
         
         for (songID, songArray) in songs {
             for song in songArray {
                 let songModel = SongModel(song: song, isCatalog: false)
                 songModel.recSong = songID
                 songModel.custom = true
-                songModel.recSeed = artistName ?? Genres.genres.first(where: { $0.value == genreSeed })?.key ?? ""
+                songModel.recSeed = customFilterModel.artistSeedName ?? Genres.genres.first(where: { $0.value == customFilterModel.genreSeed })?.key ?? ""
                 context.insert(songModel)
+                customFilterModel.songs.append(songModel)
             }
         }
         
         do {
             try context.save()
+            customFilterModel.active = true
             print("Successfully persisted \(songs.values.flatMap({ $0 }).count) custom recommended songs")
+            print("Custom filter song count: \(customFilterModel.songs.count)")
         } catch {
             print("Could not persist songs")
         }
     }
     
+    func persistCustomFilter(_ customFilter: CustomFilterModel) async throws {
+        let context = ModelContext(try ModelContainer(for: CustomFilterModel.self))
+        context.insert(customFilter)
+        
+        do {
+            try context.save()
+            print("Successfully saved custom filter")
+        } catch {
+            print("Could not save custom filter")
+        }
+    }
+    
+    @MainActor
+    func fetchCustomFilter() async throws {
+        let filterDescriptor = FetchDescriptor<CustomFilterModel>()
+        
+        let context = Helpers.container.mainContext
+        let items = try context.fetch(filterDescriptor)
+        if let filter = items.first {
+            filter.active = false
+            customFilterModel = filter
+        }
+        return
+    }
+    
     func lowCustomRecsTrigger() async {
-        print("Getting low", songModelManager.customFilterSongs.count)
+        print("Getting low", customFilterModel?.songs.count ?? "None")
         lowRecsActive = true
         if let recommendedSongs = await getCustomRecommendations() {
             try? await persistCustomRecommendations(songs: recommendedSongs)

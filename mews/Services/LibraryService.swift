@@ -18,12 +18,11 @@ class LibraryService {
     var playlists = [Playlist]()
     var artists = [String]()
     var activePlaylist: Playlist?
-    var initialLoad = false
+    
     var savedSongs = [SongModel]()
     
     init(songModelManager: SongModelManager) {
         self.songModelManager = songModelManager
-        loadInitialLoad()
         Task {
             await getSavedLibraryArtists()
             
@@ -121,7 +120,7 @@ class LibraryService {
     }
     
     func persistLibrarySongs(songs: [Song]) async throws {
-        let context = ModelContext(try ModelContainer(for: SongModel.self))
+        let context = ModelContext(try ModelContainer(for: SongModel.self, CustomFilterModel.self))
         
         for song in songs {
             let songModel = (SongModel(song: song, isCatalog: true))
@@ -192,7 +191,7 @@ class LibraryService {
         }
     }
     
-    func getPlaylist() async -> Playlist? {
+    static func getPlaylist(_ activePlaylist: Playlist?) async -> Playlist? {
         let libraryRequest = MusicLibraryRequest<Playlist>()
         let libraryResponse = try? await libraryRequest.response()
         
@@ -200,14 +199,14 @@ class LibraryService {
             return activePlaylist
         } else if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == "Found with DiscoMuse" }) {
             return defaultPlaylist
-        } else if let newDefaultPlaylist = await createDefaultPlaylist() {
+        } else if let newDefaultPlaylist = await Self.createDefaultPlaylist() {
             return newDefaultPlaylist
         }
         
         return nil
     }
     
-    func createDefaultPlaylist() async -> Playlist? {
+    static func createDefaultPlaylist() async -> Playlist? {
         let library = MusicLibrary.shared
         return try? await library.createPlaylist(name: "Found with DiscoMuse")
     }
@@ -244,17 +243,6 @@ class LibraryService {
         
         for song in songs {
             let _ = try? await library.add(song, to: playlist)
-        }
-    }
-    
-    func saveInitialLoad() {
-        UserDefaults.standard.set(true, forKey: "initialLoad")
-        loadInitialLoad()
-    }
-    
-    func loadInitialLoad() {
-        if UserDefaults.standard.bool(forKey: "initialLoad") {
-            initialLoad = true
         }
     }
 }

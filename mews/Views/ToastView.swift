@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ToastView: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "heart.fill")
@@ -21,7 +23,7 @@ struct ToastView: View {
         .background {
             Capsule()
                 .fill(.oreo)
-                .shadow(color: .snow.opacity(0.2), radius: 8, x: 2, y: 2)
+                .shadow(color: .snow.opacity(colorScheme == .light ? 0.2 : 0.05), radius: 6, x: 2, y: 4)
         }
         .frame(maxWidth: .infinity)
     }

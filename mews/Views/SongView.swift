@@ -10,6 +10,7 @@ import SwiftUI
 struct SongView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(LibraryService.self) var libraryService
+    @Environment(CustomFilterService.self) var customFilterService
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.openURL) var openURL
     @Binding var opacity: Double
@@ -97,7 +98,7 @@ struct SongView: View {
             .onOrientationChange(isLandscape: $isLandscape)
             .onChange(of: song) { _, newSong in
                 // song change trigger
-                guard !(libraryService.songModelManager.customFilter?.lowRecsActive ?? false) else {
+                guard !(customFilterService.lowRecsActive) else {
                     opacity = 1
                     playerViewModel.switchingSongs = false
                     return

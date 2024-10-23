@@ -21,7 +21,7 @@ struct Helpers {
     
     static let container: ModelContainer = {
         do {
-            let container = try ModelContainer(for: SongModel.self)
+            let container = try ModelContainer(for: SongModel.self, CustomFilterModel.self)
             return container
         } catch {
             fatalError("Failed to create container: \(error)")
@@ -32,6 +32,8 @@ struct Helpers {
     static let developerToken = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkY3NjNRQjQ4TUwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJHOVJQWU1TMlBBIiwiaWF0IjoxNzI3OTkwNjI1LCJleHAiOjE3NDM1NDI2MjV9.PX9Zzu6CtlH52ieCZG7S_w-q6YnINJg6JL5mrYuJ7lSuMpOBBxR3mTxZ1wdGiDjdU-zEJ6qxB-rDk04PxiPdvQ"
     
     static let idiom = UIDevice.current.userInterfaceIdiom
+    
+    static let actionButtonSize = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
 }
 
 struct OrientationChangeModifier: ViewModifier {

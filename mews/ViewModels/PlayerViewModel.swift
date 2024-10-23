@@ -20,10 +20,11 @@ final class PlayerViewModel {
     var image: UIImage?
     var swipeDirection: Edge = .leading
     var switchingSongs = false
-    
+    var initialLoad = false
     var haptic = false
     var showFilters = false
     var showSettings = false
+    var showToast = false
     var scale: CGFloat = 50
     var opacity: Double = 1
     var progress: Double = 0
@@ -31,8 +32,10 @@ final class PlayerViewModel {
     
     let height = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
     var selectedSeed: String?
+    var buttonDisabled = false
     
     init() {
+        loadInitialLoad()
         configureAudioSession()
         avPlayer.actionAtItemEnd = .none
         
@@ -121,7 +124,7 @@ final class PlayerViewModel {
                     progress = 1
                 }
                 await assignPlayerSong(song: song)
-                libraryService.saveInitialLoad()
+                saveInitialLoad()
             }
         } else {
             if let song = libraryService.songModelManager.recSongs.randomElement() {
@@ -182,6 +185,17 @@ final class PlayerViewModel {
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to set audio session category: \(error)")
+        }
+    }
+    
+    func saveInitialLoad() {
+        UserDefaults.standard.set(true, forKey: "initialLoad")
+        loadInitialLoad()
+    }
+    
+    func loadInitialLoad() {
+        if UserDefaults.standard.bool(forKey: "initialLoad") {
+            initialLoad = true
         }
     }
 }
