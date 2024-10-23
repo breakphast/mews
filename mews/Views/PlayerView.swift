@@ -240,7 +240,6 @@ struct PlayerView: View {
             Spacer()
             Image(systemName: "person.circle")
                 .font(.largeTitle)
-                .fontWeight(.semibold)
                 .foregroundStyle(.snow)
                 .onTapGesture {
                     withAnimation {

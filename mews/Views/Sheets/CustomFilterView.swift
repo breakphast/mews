@@ -178,7 +178,7 @@ struct CustomFilterView: View {
                 try await libraryService.songModelManager.fetchItems()
                 try await playerViewModel.swipeAction(liked: nil, recSongs: savedCustomSongs)
                 filter.customFetchingActive = false
-            }            
+            }
         }
     }
 }

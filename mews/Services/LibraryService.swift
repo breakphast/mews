@@ -198,7 +198,7 @@ class LibraryService {
         
         if let activePlaylist {
             return activePlaylist
-        } else if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == "Found with Mews" }) {
+        } else if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == "Found with DiscoMuse" }) {
             return defaultPlaylist
         } else if let newDefaultPlaylist = await createDefaultPlaylist() {
             return newDefaultPlaylist
@@ -209,7 +209,7 @@ class LibraryService {
     
     func createDefaultPlaylist() async -> Playlist? {
         let library = MusicLibrary.shared
-        return try? await library.createPlaylist(name: "Found with Mews")
+        return try? await library.createPlaylist(name: "Found with DiscoMuse")
     }
     
     // MARK: - Library Saving Methods
