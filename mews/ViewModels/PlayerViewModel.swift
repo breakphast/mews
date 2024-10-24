@@ -63,7 +63,7 @@ final class PlayerViewModel {
                     avPlayer.replaceCurrentItem(with: playerItem)
                     image = artwork
                     currentSong = song
-                    play()
+                    self.play()
                 }
             }
         }
@@ -167,16 +167,6 @@ final class PlayerViewModel {
             try await spotifyService.persistRecommendations(songs: recommendedSongs)
             try await songModelManager.fetchItems()
         }
-    }
-    
-    func play() {
-        avPlayer.play()
-        isAvPlaying = true
-    }
-    
-    func pauseAvPlayer() {
-        avPlayer.pause()
-        isAvPlaying = false
     }
     
     func configureAudioSession() {

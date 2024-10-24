@@ -62,7 +62,7 @@ struct ActionButton: View {
                     playlist: playlist
                 )
                 
-                if liked { triggerToast() }
+                if liked { playerViewModel.triggerToast() }
             }
         } label: {
             Image(systemName: liked ? "heart.fill" : "xmark")
@@ -89,7 +89,7 @@ struct ActionButton: View {
             if let customFilter {
                 if !customFilterService.active {
                     if customFilter.songs.isEmpty {
-                        triggerFilters()
+                        playerViewModel.triggerFilters()
                     } else {
                         customFilterService.active = true
                         advanceWithCustomSongs(customFilter)
@@ -135,27 +135,7 @@ struct ActionButton: View {
         Task {
             try await customFilterService.persistCustomFilter(customFilterModel)
             try await customFilterService.fetchCustomFilter()
-            triggerFilters()
-        }
-    }
-    
-    private func triggerToast() {
-        withAnimation(.bouncy) {
-            playerViewModel.showToast = false
-            playerViewModel.showToast = true
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            withAnimation(.smooth) {
-                playerViewModel.showToast = false
-            }
-        }
-    }
-    
-    private func triggerFilters() {
-        withAnimation(.bouncy.speed(0.5)) {
-            playerViewModel.showFilters.toggle()
-            return
+            playerViewModel.triggerFilters()
         }
     }
 }

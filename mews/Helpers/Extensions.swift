@@ -44,35 +44,34 @@ extension View {
     }
 }
 
-struct Genres {
-    static let genres: [String: String] = [
-        "Alternative": "alternative",
-        "Ambient": "ambient",
-        "Bluegrass": "bluegrass",
-        "Classical": "classical",
-        "Country": "country",
-        "Dance": "dance",
-        "Drum & Bass": "drum-and-bass",
-        "Dubstep": "dubstep",
-        "Electronic": "electronic",
-        "Folk": "folk",
-        "Hip-Hop/Rap": "hip-hop",
-        "House": "house",
-        "Indie Pop": "indie-pop",
-        "Jazz": "jazz",
-        "K-Pop": "k-pop",
-        "Latin": "latin",
-        "Lo-Fi": "lo-fi",
-        "Metal": "metal",
-        "New Age": "new-age",
-        "Pop": "pop",
-        "Punk": "punk",
-        "R&B/Soul": "r-n-b",
-        "Reggae": "reggae",
-        "Rock": "rock",
-        "Soundtrack": "soundtracks",
-        "Techno": "techno",
-        "Trap": "trap",
-        "World": "world-music"
-    ]
+extension PlayerViewModel {
+    func triggerToast() {
+        withAnimation(.bouncy) {
+            showToast = false
+            showToast = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            withAnimation(.smooth) {
+                self?.showToast = false
+            }
+        }
+    }
+    
+    func triggerFilters() {
+        withAnimation(.bouncy.speed(0.5)) {
+            showFilters.toggle()
+            return
+        }
+    }
+    
+    func play() {
+        avPlayer.play()
+        isAvPlaying = true
+    }
+    
+    func pauseAvPlayer() {
+        avPlayer.pause()
+        isAvPlaying = false
+    }
 }
