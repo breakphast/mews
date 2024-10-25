@@ -85,8 +85,15 @@ struct PlayerView: View {
             try? await mainInit()
         }
         .overlay {
-            if playerViewModel.showToast {
-                ToastView()
+            if playerViewModel.showAddedToast {
+                ToastView(type: .addedToLibrary)
+                    .transition(.move(edge: .top))
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
+        }
+        .overlay {
+            if playerViewModel.showLimitToast {
+                ToastView(type: .limitReached)
                     .transition(.move(edge: .top))
                     .frame(maxHeight: .infinity, alignment: .top)
             }

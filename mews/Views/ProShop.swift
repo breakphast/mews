@@ -9,11 +9,16 @@ import SwiftUI
 import StoreKit
 
 struct ProShop: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(CustomFilterService.self) var customFilterService
+    @Environment(PlayerViewModel.self) var playerViewModel
+    @Environment(StoreService.self) var storeService
+    
     var body: some View {
         SubscriptionStoreView(groupID: "090876BB") {
             VStack {
                 ZStack {
-                    Color.appleMusic.opacity(0.8).ignoresSafeArea()
+                    Color.clear.ignoresSafeArea()
                     Text("PRO")
                         .fontWeight(.black)
                         .font(.system(size: 88))
@@ -21,6 +26,7 @@ struct ProShop: View {
                         .kerning(2)
                 }
                 .frame(height: 200)
+                .background(Color.appleMusic.opacity(0.9).gradient)
                 Spacer()
                 VStack(spacing: 32) {
                     Text("Try DiscoMuse Pro for free")
@@ -52,8 +58,26 @@ struct ProShop: View {
         }
         .subscriptionStorePickerItemBackground(.ultraThinMaterial)
         .subscriptionStoreButtonLabel(.action)
+        .subscriptionStoreButtonLabel(.multiline)
+        .storeButton(.visible, for: .restorePurchases)
         .storeButton(.visible, for: .policies)
         .tint(.appleMusic.opacity(0.8))
+        .onInAppPurchaseCompletion { product, result in
+            if case .success(.success(let verification)) = result {
+                Task {
+                    let transaction = try storeService.checkVerified(verification)
+                    
+                    let customFilterModel = CustomFilterModel()
+                    try await customFilterService.persistCustomFilter(customFilterModel)
+                    try await customFilterService.fetchCustomFilter()
+                    dismiss()
+                    playerViewModel.triggerFilters()
+                    
+                    await transaction.finish()
+                    return transaction
+                }
+            }
+        }
     }
     
     let features: [(title: String, description: String)] = [
@@ -68,4 +92,6 @@ struct ProShop: View {
 
 #Preview {
     ProShop()
+        .environment(PlayerViewModel())
+        .environment(CustomFilterService(songModelManager: SongModelManager(), spotifyTokenManager: SpotifyTokenManager()))
 }

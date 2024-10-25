@@ -12,7 +12,7 @@ import SwiftData
 
 @Observable
 class SpotifyService {
-    var artistSeeds = [String]()
+    var trackSeeds = [String]()
     var genreSeed = "rap"
     var fetchingActive = false
     
@@ -113,9 +113,9 @@ class SpotifyService {
         for song in librarySongs.shuffled() {
             print("Using artist \(song.artist) for recommendations.")
             
-            artistSeeds.removeAll()
-            if let spotifyArtist = await Self.fetchArtistID(artist: song.artist, token: token) {
-                artistSeeds.append(spotifyArtist.artistID)
+            trackSeeds.removeAll()
+            if let spotifyTrack = await fetchTrackID(artist: song.artist, title: song.title) {
+                trackSeeds.append(spotifyTrack)
             }
             
             if let recommendations = await fetchRecommendations(token: token) {
@@ -151,13 +151,13 @@ class SpotifyService {
     }
     
     func fetchRecommendations(token: String) async -> [Song]? {
-        guard !artistSeeds.isEmpty else {
+        guard !trackSeeds.isEmpty else {
             return nil
         }
         
         var queryItems = [URLQueryItem]()
-        if !artistSeeds.isEmpty {
-            queryItems.append(URLQueryItem(name: "seed_artists", value: artistSeeds.joined(separator: ",")))
+        if !trackSeeds.isEmpty {
+            queryItems.append(URLQueryItem(name: "seed_tracks", value: trackSeeds.joined(separator: ",")))
         }
         if !genreSeed.isEmpty {
             queryItems.append(URLQueryItem(name: "seed_genres", value: genreSeed))
@@ -262,7 +262,7 @@ class SpotifyService {
     }
     
     func lowRecsTrigger(songs: [SongModel], recSongs: [SongModel], dislikedSongs: [String]) async {
-        artistSeeds.removeAll()
+        trackSeeds.removeAll()
         
         if let recommendedSongs = await getRecommendations(using: songs, recSongs: recSongs, deletedSongs: dislikedSongs) {
             try? await persistRecommendations(songs: recommendedSongs)

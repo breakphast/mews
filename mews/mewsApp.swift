@@ -16,13 +16,18 @@ struct mewsApp: App {
     @State private var playerViewModel = PlayerViewModel()
     @State private var spotifyTokenManager = SpotifyTokenManager()
     @State private var songModelManager = SongModelManager()
+    @State private var storeService = StoreService()
     
     @Environment(\.modelContext) var modelContext
     
     var body: some Scene {
         WindowGroup {
             Group {
-                PlayerView(playerViewModel: playerViewModel)
+                if authService.appleUserID == nil {
+                    SignInView()
+                } else {
+                    PlayerView(playerViewModel: playerViewModel)
+                }
             }
             .environment(authService)
             .environment(playerViewModel)
@@ -30,7 +35,7 @@ struct mewsApp: App {
             .environment(LibraryService(songModelManager: songModelManager))
             .environment(SpotifyService(tokenManager: spotifyTokenManager))
             .environment(CustomFilterService(songModelManager: songModelManager, spotifyTokenManager: spotifyTokenManager))
-            
+            .environment(storeService)
         }
         .modelContainer(for: [SongModel.self, CustomFilterModel.self])
     }

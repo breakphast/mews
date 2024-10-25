@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import MusicKit
+import StoreKit
 
 struct ActionButton: View {
     @Environment(PlayerViewModel.self) var playerViewModel
@@ -30,17 +31,19 @@ struct ActionButton: View {
         if liked == nil {
             customFilterButton()
                 .disabled(playerViewModel.buttonDisabled)
-                .sensoryFeedback(.impact(weight: .light), trigger: playerViewModel.haptic)
         } else if let liked {
             selectionButton(liked)
                 .disabled(playerViewModel.buttonDisabled)
-                .sensoryFeedback(.impact(weight: liked ? .heavy : .light), trigger: playerViewModel.haptic)
         }
     }
     
     private func selectionButton(_ liked: Bool) -> some View {
         Button {
-            playerViewModel.haptic.toggle()
+            guard !playerViewModel.browseLimitReached else {
+                playerViewModel.triggerToast(type: .limitReached)
+                return
+            }
+            
             Task { @MainActor in
                 playerViewModel.opacity = 0
                 playerViewModel.switchingSongs = true
@@ -62,7 +65,7 @@ struct ActionButton: View {
                     playlist: playlist
                 )
                 
-                if liked { playerViewModel.triggerToast() }
+                if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
             }
         } label: {
             Image(systemName: liked ? "heart.fill" : "xmark")
@@ -85,7 +88,8 @@ struct ActionButton: View {
     
     private func customFilterButton() -> some View {
         Button {
-            playerViewModel.haptic.toggle()
+            Task { await checkSubscriptionStatus() }
+            
             if let customFilter {
                 if !customFilterService.active {
                     if customFilter.songs.isEmpty {
@@ -99,7 +103,7 @@ struct ActionButton: View {
                     advanceWithCustomSongs(customFilter)
                 }
             } else {
-                assignNewFilter()
+                playerViewModel.showSettings.toggle()
             }
         } label: {
             Image(systemName: "wand.and.stars")
@@ -124,9 +128,6 @@ struct ActionButton: View {
     private func advanceWithCustomSongs(_ customFilter: CustomFilterModel) {
         Task {
             try await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs)
-//            withAnimation(.bouncy.speed(0.5)) {
-//                customFilter.active = true
-//            }
         }
     }
     
@@ -137,6 +138,32 @@ struct ActionButton: View {
             try await customFilterService.fetchCustomFilter()
             playerViewModel.triggerFilters()
         }
+    }
+    
+    func checkSubscriptionStatus() async -> Bool {
+        do {
+            let products = try await Product.products(for: ["discomuse.monthly"])
+            guard let subscriptionProduct = products.first else { return false }
+            
+            let status = try await subscriptionProduct.subscription?.status.first
+            
+            if let state = status?.state {
+                if state == .subscribed {
+                    print("Subscription active.")
+                    return true
+                }
+            }
+        } catch {
+            print("Error fetching subscription status: \(error)")
+        }
+        print("Failed to fetch subscription status.")
+        if let _ = customFilterService.customFilterModel {
+            try? await customFilterService.deleteCustomFilter(customFilterService.customFilterModel!)
+            customFilterService.customFilterModel = nil
+            customFilterService.active = false
+            try? await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs)
+        }
+        return false
     }
 }
 

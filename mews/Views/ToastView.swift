@@ -9,12 +9,13 @@ import SwiftUI
 
 struct ToastView: View {
     @Environment(\.colorScheme) var colorScheme
+    let type: ToastType
     
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "heart.fill")
-                .foregroundColor(.appleMusic)
-            Text("Added to library")
+            Image(systemName: type == .addedToLibrary ? "heart.fill" : "exclamationmark.triangle.fill")
+                .foregroundColor(type == .addedToLibrary ? .appleMusic : .red)
+            Text(type == .addedToLibrary ? "Added to library" : "Browse limit reached")
                 .fontWeight(.semibold)
                 .foregroundStyle(.snow)
         }
@@ -27,4 +28,9 @@ struct ToastView: View {
         }
         .frame(maxWidth: .infinity)
     }
+}
+
+enum ToastType {
+    case addedToLibrary
+    case limitReached
 }

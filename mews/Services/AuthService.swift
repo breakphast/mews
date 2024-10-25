@@ -8,16 +8,21 @@
 import SwiftUI
 import Observation
 import MusicKit
+import AuthenticationServices
 
 @Observable
 class AuthService {
     var status: MusicAuthorization.Status
     var activeSubscription: Bool?
     var authError: AuthError?
+    var appleUserID: String?
     
     init() {
         let authStatus = MusicAuthorization.currentStatus
         status = authStatus
+        if let userID = getUserID() {
+            appleUserID = userID
+        }
     }
     
     func isActiveSubscription() async -> Bool {
@@ -61,9 +66,21 @@ class AuthService {
             print("Error.")
         }        
     }
+    
+    func saveUserID(_ id: String) {
+        UserDefaults.standard.set(id, forKey: "appleUserID")
+    }
+
+    func getUserID() -> String? {
+        return UserDefaults.standard.string(forKey: "appleUserID")
+    }
 }
 
 enum AuthError: Error {
     case denied
     case noSubscription
 }
+
+let users: [String] = [
+    "000286.569fb9de8ece4d6fbc7253d905faf294.1359"
+]

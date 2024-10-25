@@ -45,15 +45,26 @@ extension View {
 }
 
 extension PlayerViewModel {
-    func triggerToast() {
+    func triggerToast(type: ToastType) {
         withAnimation(.bouncy) {
-            showToast = false
-            showToast = true
+            switch type {
+            case .addedToLibrary:
+                showAddedToast = false
+                showAddedToast = true
+            case .limitReached:
+                showLimitToast = false
+                showLimitToast = true
+            }
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             withAnimation(.smooth) {
-                self?.showToast = false
+                switch type {
+                case .addedToLibrary:
+                    self?.showAddedToast = false
+                case .limitReached:
+                    self?.showLimitToast = false
+                }
             }
         }
     }

@@ -21,10 +21,10 @@ final class PlayerViewModel {
     var swipeDirection: Edge = .leading
     var switchingSongs = false
     var initialLoad = false
-    var haptic = false
     var showFilters = false
     var showSettings = false
-    var showToast = false
+    var showAddedToast = false
+    var showLimitToast = false
     var scale: CGFloat = 50
     var opacity: Double = 1
     var progress: Double = 0
@@ -33,6 +33,10 @@ final class PlayerViewModel {
     let height = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
     var selectedSeed: String?
     var buttonDisabled = false
+    var songsBrowsed = 0
+    var browseLimitReached: Bool {
+        songsBrowsed >= 5
+    }
     
     init() {
         loadInitialLoad()
@@ -71,8 +75,11 @@ final class PlayerViewModel {
     
     @MainActor
     func swipeAction(liked: Bool?, recSongs: [SongModel], playlist: Playlist? = nil) async throws {
+        guard !browseLimitReached else { return }
+        
         guard let liked else {
             if let recSong = recSongs.randomElement() {
+                songsBrowsed += 1
                 await assignPlayerSong(song: recSong)
             }
             return
@@ -86,6 +93,7 @@ final class PlayerViewModel {
         }
         
         if let recSong = songs.randomElement() {
+            songsBrowsed += 1
             await assignPlayerSong(song: recSong)
         }
         

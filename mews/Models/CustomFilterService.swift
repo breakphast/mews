@@ -180,6 +180,21 @@ class CustomFilterService {
     }
     
     @MainActor
+    func deleteCustomFilter(_ customFilter: CustomFilterModel) async throws {
+        let context = Helpers.container.mainContext
+        
+        context.delete(customFilter)
+        
+        do {
+            try context.save()
+            print("Successfully deleted custom filter")
+        } catch {
+            print("Could not delete custom filter")
+            throw error
+        }
+    }
+    
+    @MainActor
     func fetchCustomFilter() async throws {
         let filterDescriptor = FetchDescriptor<CustomFilterModel>()
         
