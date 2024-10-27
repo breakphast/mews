@@ -62,7 +62,8 @@ struct ActionButton: View {
                 try await playerViewModel.swipeAction(
                     liked: liked,
                     recSongs: activeSongs,
-                    playlist: playlist
+                    playlist: playlist,
+                    limit: customFilter == nil
                 )
                 
                 if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
@@ -127,7 +128,7 @@ struct ActionButton: View {
     
     private func advanceWithCustomSongs(_ customFilter: CustomFilterModel) {
         Task {
-            try await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs)
+            try await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs, limit: false)
         }
     }
     
@@ -161,8 +162,9 @@ struct ActionButton: View {
             try? await customFilterService.deleteCustomFilter(customFilterService.customFilterModel!)
             customFilterService.customFilterModel = nil
             customFilterService.active = false
-            try? await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs)
+            try? await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs, limit: customFilter == nil)
         }
+        
         return false
     }
 }

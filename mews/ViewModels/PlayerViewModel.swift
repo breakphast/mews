@@ -33,9 +33,10 @@ final class PlayerViewModel {
     let height = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
     var selectedSeed: String?
     var buttonDisabled = false
+    var appleUserID: String?
     var songsBrowsed = 0
     var browseLimitReached: Bool {
-        songsBrowsed >= 5
+        songsBrowsed >= Helpers.songLimit
     }
     
     init() {
@@ -74,12 +75,17 @@ final class PlayerViewModel {
     }
     
     @MainActor
-    func swipeAction(liked: Bool?, recSongs: [SongModel], playlist: Playlist? = nil) async throws {
+    func swipeAction(liked: Bool?, recSongs: [SongModel], playlist: Playlist? = nil, limit: Bool) async throws {
         guard !browseLimitReached else { return }
         
         guard let liked else {
             if let recSong = recSongs.randomElement() {
-                songsBrowsed += 1
+                guard let appleUserID else { return }
+                
+                if limit {
+                    await APIService.updateSongsBrowsed(for: appleUserID, count: songsBrowsed)
+                    songsBrowsed = await APIService.fetchSongsBrowsed(for: appleUserID) ?? 0
+                }
                 await assignPlayerSong(song: recSong)
             }
             return
@@ -93,7 +99,12 @@ final class PlayerViewModel {
         }
         
         if let recSong = songs.randomElement() {
-            songsBrowsed += 1
+            guard let appleUserID else { return }
+            
+            if limit {
+                await APIService.updateSongsBrowsed(for: appleUserID, count: songsBrowsed)
+                songsBrowsed = await APIService.fetchSongsBrowsed(for: appleUserID) ?? 0
+            }
             await assignPlayerSong(song: recSong)
         }
         

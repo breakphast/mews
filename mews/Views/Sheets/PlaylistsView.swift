@@ -50,6 +50,9 @@ struct PlaylistsView: View {
             }
             .padding([.top, .horizontal])
         }
+        .task {
+            try? await libraryService.fetchLibraryPlaylists()
+        }
     }
 }
 

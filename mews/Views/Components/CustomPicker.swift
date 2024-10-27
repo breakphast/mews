@@ -10,6 +10,7 @@ import SwiftUI
 struct CustomPicker: View {
     @Namespace var animation
     @Binding var activeSeed: String
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         HStack {
@@ -28,7 +29,7 @@ struct CustomPicker: View {
                 ZStack {
                     if activeSeed == seed.rawValue {
                         Color.oreo.cornerRadius(12)
-                            .shadow(color: .snow.opacity(0.1), radius: 4, x: seed == .artist ? 2 : -2, y: 2)
+                            .shadow(color: .snow.opacity(colorScheme == .light ? 0.1 : 0.05), radius: 4, x: seed == .artist ? 2 : -2, y: 2)
                             .matchedGeometryEffect(id: "SEED", in: animation)
                     }
                 }

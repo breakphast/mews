@@ -78,7 +78,7 @@ struct PlayerView: View {
                 }
             }
             .fullScreenCover(isPresented: $playerViewModel.showSettings) {
-                ProShop()
+                Settings()
             }
         }
         .task {
@@ -189,7 +189,7 @@ struct PlayerView: View {
                 .foregroundStyle(.appleMusic.opacity(0.8))
                 .kerning(0.2)
             Spacer()
-            Image(systemName: "person.circle")
+            Image(systemName: "gear.circle")
                 .font(.largeTitle)
                 .foregroundStyle(.snow)
                 .onTapGesture {
@@ -223,6 +223,16 @@ struct PlayerView: View {
     private func mainInit() async throws {
         do {
             if authService.status != .authorized { await authService.authorizeAction() }
+            playerViewModel.appleUserID = authService.appleUserID
+            if customFilterService.customFilterModel == nil {
+                if let userID = authService.appleUserID {
+                    playerViewModel.songsBrowsed = await APIService.fetchSongsBrowsed(for: userID) ?? 0
+                    if playerViewModel.browseLimitReached {
+                        playerViewModel.triggerToast(type: .limitReached)
+                    }
+                }
+            }
+            
             #if !targetEnvironment(simulator)
             guard await authService.isActiveSubscription() == true else {
                 authService.activeSubscription = false

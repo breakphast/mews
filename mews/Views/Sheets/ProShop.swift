@@ -10,6 +10,7 @@ import StoreKit
 
 struct ProShop: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @Environment(CustomFilterService.self) var customFilterService
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(StoreService.self) var storeService
@@ -56,6 +57,9 @@ struct ProShop: View {
                 Spacer()
             }
         }
+        .background {
+            Color.oreo.ignoresSafeArea()
+        }
         .subscriptionStorePickerItemBackground(.ultraThinMaterial)
         .subscriptionStoreButtonLabel(.action)
         .subscriptionStoreButtonLabel(.multiline)
@@ -72,6 +76,7 @@ struct ProShop: View {
                     try await customFilterService.fetchCustomFilter()
                     dismiss()
                     playerViewModel.triggerFilters()
+                    playerViewModel.songsBrowsed = 0
                     
                     await transaction.finish()
                     return transaction
@@ -94,4 +99,5 @@ struct ProShop: View {
     ProShop()
         .environment(PlayerViewModel())
         .environment(CustomFilterService(songModelManager: SongModelManager(), spotifyTokenManager: SpotifyTokenManager()))
+        .environment(StoreService())
 }

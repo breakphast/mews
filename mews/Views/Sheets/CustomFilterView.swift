@@ -15,6 +15,7 @@ struct CustomFilterView: View {
     @Environment(SpotifyService.self) var spotifyService
     @Environment(CustomFilterService.self) var customFilterService
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @State private var artistText = ""
     @State private var genreText = ""
     @FocusState private var focus: Bool
@@ -56,7 +57,7 @@ struct CustomFilterView: View {
             
             VStack(alignment: .leading, spacing: 16) {
                 Capsule()
-                    .fill(.snow.opacity(0.8))
+                    .fill(.snow.opacity(0.6))
                     .frame(width: 55, height: 6)
                     .padding(.bottom, 4)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -65,7 +66,7 @@ struct CustomFilterView: View {
                 seedTextField
                 seedsScrollView
             }
-            .padding(.top)
+            .padding(.top, 8)
         }
         .fontDesign(.rounded)
         .task {
@@ -85,7 +86,7 @@ struct CustomFilterView: View {
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(.oreo.opacity(0.9))
-                    .shadow(color: .snow.opacity(0.15), radius: 4, x: 2, y: 2)
+                    .shadow(color: .snow.opacity(colorScheme == .light ? 0.15 : 0.05), radius: 4, x: 2, y: 2)
             }
             .padding(.vertical, 8)
             .bold()
@@ -175,7 +176,7 @@ struct CustomFilterView: View {
             if let recs = await customFilterService.getCustomRecommendations() {
                 try? await customFilterService.persistCustomRecommendations(songs: recs)
                 try await libraryService.songModelManager.fetchItems()
-                try await playerViewModel.swipeAction(liked: nil, recSongs: savedCustomSongs)
+                try await playerViewModel.swipeAction(liked: nil, recSongs: savedCustomSongs, limit: false)
                 customFilterService.customFetchingActive = false
             }
         }
