@@ -78,7 +78,7 @@ struct PlayerView: View {
                 }
             }
             .fullScreenCover(isPresented: $playerViewModel.showSettings) {
-                Settings()
+                SettingsView()
             }
             .fullScreenCover(isPresented: $playerViewModel.showStore) {
                 ProShop()
@@ -178,7 +178,7 @@ struct PlayerView: View {
                 .foregroundStyle(customFilter == nil ? .gray : .snow)
                 .onTapGesture {
                     guard customFilter != nil else {
-                        playerViewModel.showSettings.toggle()
+                        playerViewModel.showStore.toggle()
                         return
                     }
                     withAnimation(.bouncy) {

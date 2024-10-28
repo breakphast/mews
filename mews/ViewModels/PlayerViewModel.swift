@@ -109,8 +109,12 @@ final class PlayerViewModel {
             await assignPlayerSong(song: recSong)
         }
         
-        if liked, let song = await LibraryService.fetchCatalogSong(song: currentSong), let playlist {
-            await LibraryService.addSongsToPlaylist(songs: [song], playlist: playlist)
+        if liked, let song = await LibraryService.fetchCatalogSong(song: currentSong) {
+            if let playlist {
+                await LibraryService.addSongToPlaylist(song: song, playlist: playlist)
+            } else {
+                await LibraryService.addSongToLibrary(song: song)
+            }
         }
         
         return

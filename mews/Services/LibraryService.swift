@@ -20,9 +20,7 @@ class LibraryService {
     var activePlaylist: Playlist?
     
     var likeActionOptions: [String] {
-        var options = self.playlists.map { $0.name.uppercased() }
-        options.append("Library")
-        return options
+        return playlists.map { $0.name }
     }
     
     var savedSongs = [SongModel]()
@@ -34,8 +32,13 @@ class LibraryService {
             
             if let fetchedArtists = try await fetchLibraryArtists() {
                 if fetchedArtists.count > artists.count {
-                    saveLibraryArtists(artists: fetchedArtists)
+                    Helpers.saveToUserDefaults(fetchedArtists, forKey: "libraryArtists")
                     artists = fetchedArtists
+                }
+            }
+            if let playlistName: String = Helpers.getFromUserDefaults(forKey: "defaultPlaylist") {
+                if let playlist = await getPlaylist(playlistName) {
+                    activePlaylist = playlist
                 }
             }
         }
@@ -217,12 +220,17 @@ class LibraryService {
         return try? await library.createPlaylist(name: "Found with DiscoMuse")
     }
     
-    // MARK: - Library Saving Methods
-    
-    /// Saves artists to UserDefaults
-    func saveLibraryArtists(artists: [String]) {
-        UserDefaults.standard.set(artists, forKey: "libraryArtists")
+    func getPlaylist(_ name: String) async -> Playlist? {
+        let libraryRequest = MusicLibraryRequest<Playlist>()
+        let libraryResponse = try? await libraryRequest.response()
+        
+        if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == name }) {
+            return defaultPlaylist
+        }
+        return nil
     }
+    
+    // MARK: - Library Saving Methods
     
     /// Fetches and saves artists from UserDefaults or MusicKit
     func getSavedLibraryArtists() async {
@@ -230,7 +238,7 @@ class LibraryService {
             artists = savedArtists
         } else {
             if let savedArtists = try? await fetchLibraryArtists() {
-                saveLibraryArtists(artists: savedArtists)
+                Helpers.saveToUserDefaults(savedArtists, forKey: "libraryArtists")
                 artists = savedArtists
             }
         }
@@ -239,16 +247,13 @@ class LibraryService {
     // MARK: - Library Actions
     
     /// Adds a song to the user's Apple Music library
-    func addSongToLibrary(song: Song) async {
+    static func addSongToLibrary(song: Song) async {
         try? await MusicLibrary.shared.add(song)
     }
     
     /// Adds a song to the "Songs To Delete (mews)" playlist
-    static func addSongsToPlaylist(songs: [Song], playlist: Playlist) async {
+    static func addSongToPlaylist(song: Song, playlist: Playlist) async {
         let library = MusicLibrary.shared
-        
-        for song in songs {
-            let _ = try? await library.add(song, to: playlist)
-        }
+        let _ = try? await library.add(song, to: playlist)
     }
 }

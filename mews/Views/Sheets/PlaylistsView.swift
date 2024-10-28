@@ -11,6 +11,15 @@ import MusicKit
 struct PlaylistsView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(\.dismiss) var dismiss
+    @Binding var selected: String
+    
+    var playlistText: String {
+        if let activePlaylist = libraryService.activePlaylist {
+            activePlaylist.name
+        } else {
+            "Found with DiscoMuse"
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -22,23 +31,32 @@ struct PlaylistsView: View {
                     .frame(width: 55, height: 6)
                     .frame(maxWidth: .infinity, alignment: .center)
                 
-                Text("Playlists")
+                Text("Your Playlists")
                     .font(.largeTitle.bold())
-                    .fontDesign(.rounded)
-                    .padding(.vertical)
+                    .padding(.top, 24)
+                    .padding(.bottom)
+                
+                Text("Active Playlist: \(playlistText)")
+                    .font(.title3.bold())
+                    .padding(.bottom, 8)
+                    .foregroundStyle(.appleMusic)
                 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         if !libraryService.playlists.isEmpty {
                             ForEach(libraryService.playlists) { playlist in
-                                PlaylistRow(playlist: playlist)
-                                    .onTapGesture {
-                                        libraryService.activePlaylist = playlist
-                                        withAnimation(.bouncy) {
-                                            dismiss()
+                                if playlist != libraryService.activePlaylist {
+                                    PlaylistRow(playlist: playlist)
+                                        .onTapGesture {
+                                            libraryService.activePlaylist = playlist
+                                            selected = playlist.name
+                                            Helpers.saveToUserDefaults(playlist.name, forKey: "defaultPlaylist")
+                                            withAnimation(.bouncy) {
+                                                dismiss()
+                                            }
                                         }
-                                    }
-                                Divider()
+                                    Divider()
+                                }
                             }
                         } else {
                             Text("No playlists in library")
@@ -48,30 +66,11 @@ struct PlaylistsView: View {
                     }
                 }
             }
-            .padding([.top, .horizontal])
+            .padding(.horizontal)
+            .padding(.top, 8)
         }
         .task {
             try? await libraryService.fetchLibraryPlaylists()
         }
-    }
-}
-
-#Preview {
-    PlaylistsView()
-}
-
-struct PlaylistRow: View {
-    let playlist: Playlist
-    
-    var body: some View {
-        HStack {
-            Text(playlist.name)
-                .foregroundStyle(.snow)
-                .font(.title3)
-                .fontDesign(.rounded)
-            Spacer()
-        }
-        .padding(.vertical, 4)
-        .bold()
     }
 }

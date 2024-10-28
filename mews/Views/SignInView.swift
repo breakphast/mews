@@ -120,7 +120,7 @@ struct SignInView: View {
             switch result {
             case .success(let authorization):
                 if let userCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-                    authService.saveUserID(userCredential.user)
+                    Helpers.saveToUserDefaults(userCredential.user, forKey: "appleUserID")
                     authService.appleUserID = userCredential.user
                 }
             case .failure(_):

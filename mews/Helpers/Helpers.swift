@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import StoreKit
 
 struct Helpers {
     static func fetchArtwork(from url: URL) async -> UIImage? {
@@ -34,6 +35,14 @@ struct Helpers {
     static let idiom = UIDevice.current.userInterfaceIdiom
     static let actionButtonSize = UIScreen.main.bounds.height * (Helpers.idiom == .pad ? 0.06 : 0.1)
     static let songLimit = 15
+    
+    static func saveToUserDefaults<T>(_ value: T, forKey key: String) {
+        UserDefaults.standard.set(value, forKey: key)
+    }
+
+    static func getFromUserDefaults<T>(forKey key: String) -> T? {
+        return UserDefaults.standard.object(forKey: key) as? T
+    }
 }
 
 struct OrientationChangeModifier: ViewModifier {
@@ -123,5 +132,11 @@ enum SeedLimit: Int {
         case 5: self = .fiveSeeds
         default: self = .oneSeed
         }
+    }
+}
+
+func requestAppReview() {
+    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+        SKStoreReviewController.requestReview(in: windowScene)
     }
 }

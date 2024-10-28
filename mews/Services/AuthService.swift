@@ -21,10 +21,10 @@ class AuthService {
         let authStatus = MusicAuthorization.currentStatus
         status = authStatus
         #if targetEnvironment(simulator)
-        saveUserID("tester")
+        Helpers.saveToUserDefaults("tester", forKey: "appleUserID")
         appleUserID = "tester"
         #else
-        if let userID = getUserID() {
+        if let userID: String = Helpers.getFromUserDefaults(forKey: "appleUserID") {
             appleUserID = userID
         }
         #endif
@@ -70,14 +70,6 @@ class AuthService {
         default:
             print("Error.")
         }        
-    }
-    
-    func saveUserID(_ id: String) {
-        UserDefaults.standard.set(id, forKey: "appleUserID")
-    }
-
-    func getUserID() -> String? {
-        return UserDefaults.standard.string(forKey: "appleUserID")
     }
 }
 
