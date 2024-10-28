@@ -80,6 +80,9 @@ struct PlayerView: View {
             .fullScreenCover(isPresented: $playerViewModel.showSettings) {
                 Settings()
             }
+            .fullScreenCover(isPresented: $playerViewModel.showStore) {
+                ProShop()
+            }
         }
         .task {
             try? await mainInit()

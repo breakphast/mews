@@ -76,6 +76,13 @@ extension PlayerViewModel {
         }
     }
     
+    func triggerStore() {
+        withAnimation(.bouncy.speed(0.5)) {
+            showStore.toggle()
+            return
+        }
+    }
+    
     func play() {
         avPlayer.play()
         isAvPlaying = true

@@ -14,7 +14,11 @@ struct Settings: View {
     @Environment(LibraryService.self) var libraryService
     
     var activePlaylist: Playlist? {
-        libraryService.activePlaylist
+        if selectedPlaylist == "Library" {
+            nil
+        } else {
+            libraryService.activePlaylist
+        }
     }
     @State private var selectedPlaylist = "Library"
     
@@ -46,7 +50,7 @@ struct Settings: View {
                         VStack(alignment: .leading, spacing: 24) {
                             Text("Pro")
                                 .font(.headline.bold())
-                            button(icon: "plus.circle", text: "Save liked songs to: \(activePlaylist?.name ?? "Library")")
+                            button(icon: "plus.circle", text: "Save liked songs to:", picker: true)
                             separator
                             button(icon: "wand.and.stars", text: "Upgrade to Pro")
                             separator
@@ -68,11 +72,25 @@ struct Settings: View {
                 }
             }
             .padding(.top, 48)
-            .padding(.horizontal, 24)
+            .padding(.leading, 24)
+            .padding(.trailing, 16)
         }
         .task {
             try? await libraryService.fetchLibraryPlaylists()
         }
+    }
+    
+    private var playlistPicker: some View {
+        Picker(selection: $selectedPlaylist) {
+            ForEach(libraryService.likeActionOptions, id: \.self) { option in
+                Text(option)
+            }
+        } label: {
+            Text("\(libraryService.activePlaylist?.name ?? "Library")")
+        }
+        .bold()
+        .offset(x: -12)
+        .scrollIndicators(.hidden)
     }
     
     private var separator: some View {
@@ -80,7 +98,7 @@ struct Settings: View {
             .padding(.trailing, 24)
     }
     
-    private func button(icon: String, text: String) -> some View {
+    private func button(icon: String, text: String, picker: Bool = false) -> some View {
         VStack(alignment: .leading) {
             Button {
                 
@@ -90,10 +108,13 @@ struct Settings: View {
                         .font(.title2.bold())
                         .frame(width: 33, alignment: .leading)
                     Text(text)
+                    if picker {
+                        playlistPicker
+                            .tint(.snow)
+                    }
                 }
             }
             .tint(.snow)
-            .padding(0)
         }
     }
 }

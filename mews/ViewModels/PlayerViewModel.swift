@@ -23,6 +23,7 @@ final class PlayerViewModel {
     var initialLoad = false
     var showFilters = false
     var showSettings = false
+    var showStore = false
     var showAddedToast = false
     var showLimitToast = false
     var scale: CGFloat = 50

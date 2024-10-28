@@ -66,6 +66,10 @@ struct ActionButton: View {
                     limit: customFilter == nil
                 )
                 
+                if customFilter?.songs == [] {
+                    customFilterService.active = false
+                }
+                
                 if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
             }
         } label: {
@@ -104,7 +108,7 @@ struct ActionButton: View {
                     advanceWithCustomSongs(customFilter)
                 }
             } else {
-                playerViewModel.showSettings.toggle()
+                playerViewModel.showStore.toggle()
             }
         } label: {
             Image(systemName: "wand.and.stars")

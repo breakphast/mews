@@ -15,14 +15,13 @@ class CustomFilterModel: Identifiable {
     
     @Relationship(deleteRule: .cascade, inverse: \SongModel.customFilter)
     var songs: [SongModel] = []
-    var artistSeedID: String?
-    var artistSeedName: String?
-    var genreSeed: String?
+    var artists = [String: String]()
+    var genreSeeds = [String]()
     var playlistSeed: String?
-    
-    var activeSeed: String = SeedOption.artist.rawValue
-    
-    init() {
-        
+    var activeSeedOption: String = SeedOption.artist.rawValue
+    var activeSeeds: [String] {
+        artists.map { $0.value } + genreSeeds
     }
+    
+    init() {}
 }

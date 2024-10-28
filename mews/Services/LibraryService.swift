@@ -19,6 +19,12 @@ class LibraryService {
     var artists = [String]()
     var activePlaylist: Playlist?
     
+    var likeActionOptions: [String] {
+        var options = self.playlists.map { $0.name.uppercased() }
+        options.append("Library")
+        return options
+    }
+    
     var savedSongs = [SongModel]()
     
     init(songModelManager: SongModelManager) {

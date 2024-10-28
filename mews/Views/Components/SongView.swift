@@ -18,14 +18,7 @@ struct SongView: View {
     @State private var artworkImage: UIImage?
     @State private var customMode = "artist"
     @State private var isLandscape: Bool = UIScreen.main.bounds.width > UIScreen.main.bounds.height
-    
-    var recSong: SongModel? {
-        if let song = playerViewModel.currentSong, let recSong = libraryService.songModelManager.savedLibrarySongs.first(where: { $0.id == song.recSong }) {
-            return recSong
-        }
-        return nil
-    }
-    
+        
     var recSeed: String? {
         return playerViewModel.currentSong?.recSeed == "" ? nil : playerViewModel.currentSong?.recSeed
     }

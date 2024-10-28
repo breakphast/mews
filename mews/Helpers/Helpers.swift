@@ -84,3 +84,44 @@ struct Genres {
         "World": "world-music"
     ]
 }
+
+enum SeedOption: String, CaseIterable {
+    case artist = "Artist"
+    case genre = "Genre"
+}
+
+enum SeedLimit: Int {
+    case oneSeed = 1
+    case twoSeeds = 2
+    case threeSeeds = 3
+    case fourSeeds = 4
+    case fiveSeeds = 5
+
+    // Return song limit per seed based on the number of seeds passed
+    var songsPerSeed: Int {
+        switch self {
+        case .oneSeed:
+            return 0
+        case .twoSeeds:
+            return 15
+        case .threeSeeds:
+            return 10
+        case .fourSeeds:
+            return 8
+        case .fiveSeeds:
+            return 6
+        }
+    }
+
+    // Convenience initializer for any count, limited to 1-5 seeds
+    init(count: Int) {
+        switch count {
+        case 1: self = .oneSeed
+        case 2: self = .twoSeeds
+        case 3: self = .threeSeeds
+        case 4: self = .fourSeeds
+        case 5: self = .fiveSeeds
+        default: self = .oneSeed
+        }
+    }
+}

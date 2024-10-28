@@ -19,7 +19,7 @@ struct CustomFilterView: View {
     @State private var artistText = ""
     @State private var genreText = ""
     @FocusState private var focus: Bool
-    @State private var selectedSeed: String?
+    @State private var selectedSeeds = [String: SeedType]()
     
     private var artists: [String] {
         libraryService.artists.filter { artist in
@@ -28,7 +28,7 @@ struct CustomFilterView: View {
     }
     
     private var seedOptions: [String] {
-        switch SeedOption(rawValue: filter.activeSeed) {
+        switch SeedOption(rawValue: filter.activeSeedOption) {
         case .artist:
             return artists.filter { artist in
                 artistText.isEmpty || artist.lowercased().contains(artistText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
@@ -62,25 +62,103 @@ struct CustomFilterView: View {
                     .padding(.bottom, 4)
                     .frame(maxWidth: .infinity, alignment: .center)
                 
-                CustomPicker(activeSeed: $filter.activeSeed)
+                CustomPicker(activeSeed: $filter.activeSeedOption)
                 seedTextField
+                
+                if !selectedSeeds.isEmpty {
+                    activeFiltersModule
+                    getRecsButton
+                }
+                
                 seedsScrollView
             }
             .padding(.top, 8)
         }
         .fontDesign(.rounded)
         .task {
-            if let seed = savedCustomSongs.first?.recSeed {
-                selectedSeed = seed
-            }
+            addSeeds()
             if artists.isEmpty {
                 await libraryService.getSavedLibraryArtists()
             }
         }
     }
     
+    private var getRecsButton: some View {
+        Button {
+            Task { executeCustomFetch() }
+        } label: {
+            HStack(spacing: 4) {
+                Text("Get Recommendations")
+                Image(systemName: "wand.and.stars")
+            }
+            .padding(12)
+            .foregroundStyle(.white)
+            .bold()
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.appleMusic.opacity(0.9))
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+    
+    private var activeFiltersModule: some View {
+        VStack(alignment: .leading) {
+            Text("Active Filters (maximum of 5)")
+                .font(.caption.bold())
+            VStack(spacing: 4) {
+                ForEach(Array(selectedSeeds.keys.sorted()), id: \.self) { seed in
+                    VStack {
+                        HStack(alignment: .center) {
+                            Text(seed)
+                                .foregroundStyle(.appleMusic.opacity(0.9))
+                            Spacer()
+                            Image(systemName: "xmark.circle")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.snow.opacity(0.9))
+                                .onTapGesture {
+                                    removeSeed(seed: seed, filter: filter)
+                                    selectedSeeds.removeValue(forKey: seed)
+                                }
+                        }
+                        .fontWeight(.semibold)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    func removeSeed(seed: String, filter: CustomFilterModel) {
+        selectedSeeds.removeValue(forKey: seed)
+        
+        if let index = filter.artists.firstIndex(where: {$0.value == seed}) {
+            filter.songs.removeAll(where: {$0.recSeed == seed})
+            filter.artists.remove(at: index)
+        }
+                
+        // Remove from genreSeeds if it contains the seed
+        if let genre = Genres.genres.first(where: { $0.key == seed })?.value, let index = filter.genreSeeds.firstIndex(of: genre) {
+            filter.songs.removeAll(where: {$0.recSeed == seed})
+            filter.genreSeeds.remove(at: index)
+        }
+        try? Helpers.container.mainContext.save()
+    }
+    
+    func addSeeds() {
+        for artist in filter.artists {
+            selectedSeeds[artist.value] = .artist
+        }
+        for genre in filter.genreSeeds {
+            if let genre = Genres.genres.first(where: { $0.value == genre })?.key {
+                selectedSeeds[genre] = .genre
+            }
+        }
+    }
+    
     private var seedTextField: some View {
-        TextField("Search for \(filter.activeSeed == SeedOption.artist.rawValue ? "artist in library" : "genre")", text: (filter.activeSeed == SeedOption.artist.rawValue ? $artistText : $genreText))
+        TextField("Search for \(filter.activeSeedOption == SeedOption.artist.rawValue ? "artist in library" : "genre")", text: (filter.activeSeedOption == SeedOption.artist.rawValue ? $artistText : $genreText))
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background {
@@ -99,19 +177,6 @@ struct CustomFilterView: View {
     private var seedsScrollView: some View {
         ScrollView {
             VStack(alignment: .leading) {
-                if let selectedSeed {
-                    VStack {
-                        HStack {
-                            Text(selectedSeed)
-                            Spacer()
-                            Image(systemName: "wand.and.stars")
-                        }
-                        .foregroundStyle(.appleMusic.opacity(0.9))
-                        .font(.title3.bold())
-                    }
-                    Divider()
-                }
-                
                 if seedOptions.isEmpty {
                     Text("No results found")
                         .font(.headline)
@@ -121,13 +186,22 @@ struct CustomFilterView: View {
                         VStack {
                             Button {
                                 focus = false
-                                selectCustomSeed(option: option)
+                                withAnimation(.bouncy) {
+                                    if selectedSeeds.count < 5 {
+                                        selectedSeeds[option] = filter.activeSeedOption == SeedOption.artist.rawValue ?
+                                            .artist : .genre
+                                    }
+                                }
+                                
+                                Task {
+                                    guard await validArtistCheck(artistName: option, token: token ?? "") else { return }
+                                }
                             } label: {
                                 HStack {
                                     Text(option)
                                         .fontWeight(.semibold)
                                     Spacer()
-                                    if option == selectedSeed {
+                                    if selectedSeeds.keys.contains(option) {
                                         Image(systemName: "wand.and.stars")
                                             .foregroundStyle(.appleMusic)
                                             .bold()
@@ -135,7 +209,7 @@ struct CustomFilterView: View {
                                 }
                                 .font(.title3)
                             }
-                            .tint(option == selectedSeed ? .appleMusic.opacity(0.9) : .snow)
+                            .tint(selectedSeeds.keys.contains(option) ? .appleMusic.opacity(0.9) : .snow)
                             
                             Divider()
                         }
@@ -150,29 +224,20 @@ struct CustomFilterView: View {
         }
     }
     
-    private func selectCustomSeed(option: String) {
+    private func executeCustomFetch() {
         Task {
             customFilterService.customFetchingActive = true
             playerViewModel.pauseAvPlayer()
             withAnimation {
                 dismiss()
             }
-            guard let token else { return }
-            if filter.activeSeed == SeedOption.artist.rawValue,
-               let artist = await SpotifyService.fetchArtistID(artist: option, token: token),
-               !option.lowercased().contains(artist.artistName.lowercased()) {
-                print("Invalid Artist", [artist.artistName, option])
-                customFilterService.customFetchingActive = false
-                return
-            }
             
             await spotifyTokenManager.ensureValidToken()
             try await libraryService.songModelManager.deleteSongModels(songModels: savedCustomSongs)
             try await libraryService.songModelManager.fetchItems()
-            await customFilterService.assignFilters(
-                artist: filter.activeSeed == SeedOption.artist.rawValue ? option : nil,
-                genre: filter.activeSeed == SeedOption.genre.rawValue ? option : nil
-            )
+            let artistSeeds = selectedSeeds.filter { $0.value == .artist }.map { $0.key }
+            let genreSeeds = selectedSeeds.filter { $0.value == .genre }.map { $0.key }
+            await customFilterService.assignSeeds(artists: artistSeeds, genres: genreSeeds)
             if let recs = await customFilterService.getCustomRecommendations() {
                 try? await customFilterService.persistCustomRecommendations(songs: recs)
                 try await libraryService.songModelManager.fetchItems()
@@ -181,9 +246,16 @@ struct CustomFilterView: View {
             }
         }
     }
-}
-
-enum SeedOption: String, CaseIterable {
-    case artist = "Artist"
-    case genre = "Genre"
+    
+    func validArtistCheck(artistName: String, token: String) async -> Bool {
+        if filter.activeSeedOption == SeedOption.artist.rawValue,
+           let artist = await SpotifyService.fetchArtistID(artist: artistName, token: token),
+           !artistName.lowercased().contains(artist.artistName.lowercased()) {
+            print("Invalid Artist", artist)
+            customFilterService.customFetchingActive = false
+            return false
+        } else {
+            return true
+        }
+    }
 }

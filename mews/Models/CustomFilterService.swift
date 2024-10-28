@@ -18,7 +18,7 @@ class CustomFilterService {
     let spotifyTokenManager: SpotifyTokenManager
     
     var recSongs: [SongModel] { songModelManager.recSongs }
-    
+    var artistSeeds = [(id: String, name: String)]()
     var dislikedSongs: [String] {
         songModelManager.savedDeletedSongs?.map { $0.url } ?? []
     }
@@ -37,37 +37,37 @@ class CustomFilterService {
     var token: String? { spotifyTokenManager.token }
     
     @MainActor
-    func assignFilters(artist: String? = nil, genre: String? = nil) async {
-        if let artist {
-            customFilterModel?.genreSeed = nil
-            
-            await spotifyTokenManager.ensureValidToken()
-            
-            guard let token = spotifyTokenManager.token else {
-                print("No valid access token.")
-                return
-            }
-            
-            if let spotifyArtist = await SpotifyService.fetchArtistID(artist: artist, token: token) {
-                customFilterModel?.artistSeedName = spotifyArtist.artistName
-                customFilterModel?.artistSeedID = spotifyArtist.artistID
-                print("Assigned Artist \(spotifyArtist.artistName)", spotifyArtist.artistID)
-            }
+    func assignSeeds(artists: [String], genres: [String]) async {
+        customFilterModel?.artists.removeAll()
+        customFilterModel?.genreSeeds.removeAll()
+        try? Helpers.container.mainContext.save()
+        await spotifyTokenManager.ensureValidToken()
+        
+        guard let token = spotifyTokenManager.token else {
+            print("No valid access token.")
             return
         }
         
-        if let genre {
-            customFilterModel?.artistSeedID = nil
-            customFilterModel?.artistSeedName = nil
-            customFilterModel?.genreSeed = Genres.genres[genre]
-            print("Assigned Genre")
-            return
+        for artist in artists {
+            if let spotifyArtist = await SpotifyService.fetchArtistID(artist: artist, token: token) {
+                customFilterModel?.artists[spotifyArtist.artistID] = artist
+                artistSeeds.append((spotifyArtist.artistID, spotifyArtist.artistName))
+                print("Assigned Artist \(spotifyArtist.artistName)", spotifyArtist.artistID)
+            }
         }
+        
+        for genre in genres {
+            if let genreValue = Genres.genres[genre] {
+                customFilterModel?.genreSeeds.append(genreValue)
+                print("Assigned Genre \(genreValue)")
+            }
+        }
+        
+        return
     }
     
     func getCustomRecommendations() async -> [String: [Song]]? {
         await spotifyTokenManager.ensureValidToken()
-        
         guard let token else {
             print("No valid access token.")
             return nil
@@ -75,22 +75,50 @@ class CustomFilterService {
         
         var recommendedSongs = [String: [Song]]()
         var indieRecs = [Song]()
-        print("Getting recs based on \(customFilterModel?.artistSeedID == nil ? "genre \(customFilterModel?.genreSeed ?? "")" : "artist \(customFilterModel?.artistSeedName ?? "")")")
-        if let recommendations = await fetchCustomRecommendations(token: token) {
-            for recSong in recommendations {
-                guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
-                    continue
-                }
-                guard await !SpotifyService.songInLibrary(song: recSong) else { continue }
-                guard await !SpotifyService.songInRecs(song: recSong, recSongs: songModelManager.recSongs, indieRecommendations: indieRecs) else { continue }
-                
-                if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
-                    if recommendedSongs[recSong.id.rawValue] != nil {
-                        recommendedSongs[recSong.id.rawValue]?.append(catalogSong)
-                    } else {
-                        recommendedSongs[recSong.id.rawValue] = [catalogSong]
+        for artist in customFilterModel?.artists ?? [:] {
+            print("Getting recs based on \(artist.value)")
+            if let recommendations = await fetchCustomRecommendations(token: token, seed: artist.key, seedType: .artist) {
+                for recSong in recommendations.0 {
+                    guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
+                        continue
                     }
-                    indieRecs.append(catalogSong)
+                    guard await !SpotifyService.songInLibrary(song: recSong) else { continue }
+                    guard await !SpotifyService.songInRecs(song: recSong, recSongs: songModelManager.recSongs, indieRecommendations: indieRecs) else { continue }
+                    
+                    if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
+                        if let artist = artistSeeds.first(where: { $0.id == artist.key }) {
+                            if recommendedSongs[artist.name] != nil {
+                                recommendedSongs[artist.name]?.append(catalogSong)
+                            } else {
+                                recommendedSongs[artist.name] = [catalogSong]
+                            }
+                            indieRecs.append(catalogSong)
+                        }
+                    }
+                }
+            }
+        }
+        
+        for genre in customFilterModel?.genreSeeds ?? [] {
+            print("Getting recs based on \(genre)")
+            if let recommendations = await fetchCustomRecommendations(token: token, seed: genre, seedType: .genre) {
+                for recSong in recommendations.0 {
+                    guard let url = recSong.url?.absoluteString, !dislikedSongs.contains(url) else {
+                        continue
+                    }
+                    guard await !SpotifyService.songInLibrary(song: recSong) else { continue }
+                    guard await !SpotifyService.songInRecs(song: recSong, recSongs: songModelManager.recSongs, indieRecommendations: indieRecs) else { continue }
+                    
+                    if let catalogSong = await LibraryService.fetchCatalogSong(title: recSong.title, artist: recSong.artistName) {
+                        if let genreValue = Genres.genres.first(where: { $0.value == genre })?.key {
+                            if recommendedSongs[genreValue] != nil {
+                                recommendedSongs[genreValue]?.append(catalogSong)
+                            } else {
+                                recommendedSongs[genreValue] = [catalogSong]
+                            }
+                            indieRecs.append(catalogSong)
+                        }
+                    }
                 }
             }
         }
@@ -98,13 +126,19 @@ class CustomFilterService {
         return recommendedSongs.isEmpty ? nil : recommendedSongs
     }
     
-    func fetchCustomRecommendations(token: String) async -> [Song]? {
+    func fetchCustomRecommendations(token: String, seed: String, seedType: SeedType) async -> ([Song], String)? {
         var queryItems = [URLQueryItem]()
-        if let id = customFilterModel?.artistSeedID {
-            queryItems.append(URLQueryItem(name: "seed_artists", value: id))
+        if seedType == .artist {
+            queryItems.append(URLQueryItem(name: "seed_artists", value: seed))
+        } else {
+            queryItems.append(URLQueryItem(name: "seed_genres", value: seed))
         }
-        if let genreSeed = customFilterModel?.genreSeed {
-            queryItems.append(URLQueryItem(name: "seed_genres", value: genreSeed))
+        
+        if let seeds = customFilterModel?.activeSeeds {
+            let limit = SeedLimit(count: seeds.count)
+            if limit != .oneSeed {
+                queryItems.append(URLQueryItem(name: "limit", value: "\(limit.songsPerSeed)"))
+            }
         }
         
         var urlComponents = URLComponents(string: "https://api.spotify.com/v1/recommendations")
@@ -134,7 +168,8 @@ class CustomFilterService {
                     tracks.append(song)
                 }
             }
-            return tracks
+            
+            return (tracks, seed)
         } catch {
             print("Error fetching recommendations: \(error.localizedDescription)")
             return nil
@@ -146,12 +181,12 @@ class CustomFilterService {
         
         let context = ModelContext(try ModelContainer(for: SongModel.self, CustomFilterModel.self))
         
-        for (songID, songArray) in songs {
+        for (seedName, songArray) in songs {
             for song in songArray {
                 let songModel = SongModel(song: song, isCatalog: false)
-                songModel.recSong = songID
+                songModel.recSong = seedName
                 songModel.custom = true
-                songModel.recSeed = customFilterModel.artistSeedName ?? Genres.genres.first(where: { $0.value == customFilterModel.genreSeed })?.key ?? ""
+                songModel.recSeed = seedName
                 context.insert(songModel)
                 customFilterModel.songs.append(songModel)
             }
@@ -161,7 +196,6 @@ class CustomFilterService {
             try context.save()
             active = true
             print("Successfully persisted \(songs.values.flatMap({ $0 }).count) custom recommended songs")
-            print("Custom filter song count: \(customFilterModel.songs.count)")
         } catch {
             print("Could not persist songs")
         }
@@ -215,4 +249,9 @@ class CustomFilterService {
         }
         return
     }
+}
+
+enum SeedType {
+    case artist
+    case genre
 }
