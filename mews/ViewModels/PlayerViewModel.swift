@@ -84,7 +84,7 @@ final class PlayerViewModel {
                 guard let appleUserID else { return }
                 
                 if limit {
-                    await APIService.updateSongsBrowsed(for: appleUserID, count: songsBrowsed)
+                    await APIService.updateSongsBrowsed(for: appleUserID)
                     songsBrowsed = await APIService.fetchSongsBrowsed(for: appleUserID) ?? 0
                 }
                 await assignPlayerSong(song: recSong)
@@ -103,7 +103,7 @@ final class PlayerViewModel {
             guard let appleUserID else { return }
             
             if limit {
-                await APIService.updateSongsBrowsed(for: appleUserID, count: songsBrowsed)
+                await APIService.updateSongsBrowsed(for: appleUserID)
                 songsBrowsed = await APIService.fetchSongsBrowsed(for: appleUserID) ?? 0
             }
             await assignPlayerSong(song: recSong)

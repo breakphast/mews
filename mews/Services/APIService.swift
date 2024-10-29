@@ -14,26 +14,26 @@ struct APIService {
             print("Invalid URL")
             return nil
         }
-
+        
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 10.0
-
+        
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-
+            
             if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                 // Print the raw JSON data for debugging
                 if let rawResponse = String(data: data, encoding: .utf8) {
                     print("Raw JSON Response: \(rawResponse)")
                 }
-
+                
                 do {
                     if let jsonResponse = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                         // Debugging: Print entire JSON response
                         print("Full JSON Response: \(jsonResponse)")
-
-                        // Access the specific keys
+                        
+                        // Directly access 'songs_browsed' as an Int
                         if let songsBrowsed = jsonResponse["songs_browsed"] as? Int {
                             print("User \(userID) has browsed \(songsBrowsed) songs.")
                             return songsBrowsed
@@ -54,7 +54,7 @@ struct APIService {
     }
     
     @MainActor
-    static func updateSongsBrowsed(for userID: String, count: Int) async {
+    static func updateSongsBrowsed(for userID: String) async {
         guard let url = URL(string: "https://app.lochsports.com:8080/user/songsBrowsed/\(userID)") else {
             print("Invalid URL")
             return
@@ -63,15 +63,8 @@ struct APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // JSON body data
-        let body: [String: Any] = [
-            "songsBrowsed": count
-        ]
 
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-            
             let (data, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {

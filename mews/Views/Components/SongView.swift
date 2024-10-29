@@ -75,9 +75,10 @@ struct SongView: View {
                             
                             if playerViewModel.currentSong != nil {
                                 songInfo(song: song)
+                                    .padding(.horizontal, (Helpers.idiom == .pad ? 16 : 0))
                             }
                         }
-                        .frame(maxWidth: Helpers.idiom == .pad ? (isLandscape ? 400 : 600) : .infinity)
+                        .frame(maxWidth: Helpers.idiom == .pad ? (isLandscape ? 400 : .infinity) : .infinity)
                     }
                 }
                 .fontDesign(.rounded)
