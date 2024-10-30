@@ -16,7 +16,7 @@ struct ProShop: View {
     @Environment(StoreService.self) var storeService
     
     var body: some View {
-        SubscriptionStoreView(groupID: "090876BB") {
+        SubscriptionStoreView(groupID: Helpers.subscriptionGroupID) {
             VStack {
                 ZStack {
                     Color.clear.ignoresSafeArea()

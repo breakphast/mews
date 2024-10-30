@@ -43,6 +43,12 @@ struct Helpers {
     static func getFromUserDefaults<T>(forKey key: String) -> T? {
         return UserDefaults.standard.object(forKey: key) as? T
     }
+    
+    #if DEBUG
+    static let subscriptionGroupID = "090876BB"
+    #else
+    static let subscriptionGroupID = "21566080"
+    #endif
 }
 
 struct OrientationChangeModifier: ViewModifier {
