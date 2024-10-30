@@ -55,5 +55,5 @@ class StoreService {
 }
 
 struct StoreContents {
-    static let productIdentifier = "discomuse.monthly"
+    static let productIdentifier = "com.discomuse.monthly"
 }

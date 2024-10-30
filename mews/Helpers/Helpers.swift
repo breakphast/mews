@@ -46,7 +46,7 @@ struct Helpers {
     
     #if DEBUG
     static let subscriptionGroupID = "090876BB"
-    #elseif TESTFLIGHT
+    #else
     static let subscriptionGroupID = "21566080"
     #endif
 }

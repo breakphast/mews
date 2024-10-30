@@ -147,7 +147,7 @@ struct ActionButton: View {
     
     func checkSubscriptionStatus() async -> Bool {
         do {
-            let products = try await Product.products(for: ["discomuse.monthly"])
+            let products = try await Product.products(for: [StoreContents.productIdentifier])
             guard let subscriptionProduct = products.first else { return false }
             
             let status = try await subscriptionProduct.subscription?.status.first

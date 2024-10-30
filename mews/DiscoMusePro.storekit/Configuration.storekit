@@ -101,7 +101,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "discomuse.monthly",
+          "productID" : "com.discomuse.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "DiscoMuse Pro - Monthly",
           "subscriptionGroupID" : "090876BB",
