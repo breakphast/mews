@@ -45,13 +45,6 @@ struct PlayerView: View {
                 }
             }
             .padding()
-            .overlay {
-                #if !targetEnvironment(simulator)
-                if authService.activeSubscription == false {
-                    inactiveOverlay
-                }
-                #endif
-            }
             .task {
                 assignNewBucketSong()
             }
@@ -239,13 +232,6 @@ struct PlayerView: View {
                     }
                 }
             }
-            
-            #if !targetEnvironment(simulator)
-            guard await authService.isActiveSubscription() == true else {
-                authService.activeSubscription = false
-                return
-            }
-            #endif
             try await playerViewModel.authorizeAndFetch(
                 libraryService: libraryService,
                 spotifyService: spotifyService

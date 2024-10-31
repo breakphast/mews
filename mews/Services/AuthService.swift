@@ -20,14 +20,12 @@ class AuthService {
     init() {
         let authStatus = MusicAuthorization.currentStatus
         status = authStatus
-        #if targetEnvironment(simulator)
-        Helpers.saveToUserDefaults("tester", forKey: "appleUserID")
-        appleUserID = "tester"
-        #else
+        Task {
+            self.activeSubscription = await isActiveSubscription()
+        }
         if let userID: String = Helpers.getFromUserDefaults(forKey: "appleUserID") {
             appleUserID = userID
         }
-        #endif
     }
     
     func isActiveSubscription() async -> Bool {

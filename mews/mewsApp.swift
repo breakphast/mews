@@ -21,15 +21,11 @@ struct mewsApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                #if !targetEnvironment(simulator)
                 if authService.appleUserID == nil {
                     SignInView()
                 } else {
                     PlayerView(playerViewModel: playerViewModel)
                 }
-                #else
-                PlayerView(playerViewModel: playerViewModel)
-                #endif
             }
             .environment(authService)
             .environment(playerViewModel)

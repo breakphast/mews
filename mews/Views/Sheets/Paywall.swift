@@ -67,7 +67,7 @@ struct Paywall: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.subheadline.bold())
+                    .bold()
                     .padding()
                     .background {
                         Circle()

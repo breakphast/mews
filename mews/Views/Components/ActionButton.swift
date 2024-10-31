@@ -55,11 +55,8 @@ struct ActionButton: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
                 }
-                #if !targetEnvironment(simulator)
+                
                 let playlist = await LibraryService.getPlaylist(libraryService.activePlaylist)
-                #else
-                let playlist: Playlist? = nil
-                #endif
                                 
                 if let song = playerViewModel.currentSong {
                     try await libraryService.songModelManager.deleteSongModel(songModel: song)
