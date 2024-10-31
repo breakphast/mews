@@ -15,6 +15,7 @@ struct PlayerView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(SpotifyService.self) var spotifyService
     @Environment(CustomFilterService.self) var customFilterService
+    @Environment(SubscriptionService.self) var subscriptionService
     @Environment(\.colorScheme) var colorScheme
     @Bindable var playerViewModel: PlayerViewModel
     
@@ -80,8 +81,8 @@ struct PlayerView: View {
             .fullScreenCover(isPresented: $playerViewModel.showSettings) {
                 SettingsView()
             }
-            .fullScreenCover(isPresented: $playerViewModel.showStore) {
-                ProShop()
+            .fullScreenCover(isPresented: $playerViewModel.showPaywall) {
+                Paywall()
             }
         }
         .task {
@@ -178,7 +179,7 @@ struct PlayerView: View {
                 .foregroundStyle(customFilter == nil ? .gray : .snow)
                 .onTapGesture {
                     guard customFilter != nil else {
-                        playerViewModel.showStore.toggle()
+                        playerViewModel.showPaywall.toggle()
                         return
                     }
                     withAnimation(.bouncy) {
@@ -186,7 +187,7 @@ struct PlayerView: View {
                     }
                 }
             Spacer()
-            Text("DiscoMuse")
+            Text("DiscoMuse\(customFilter == nil ? "" : " PRO")")
                 .font(.title)
                 .fontWeight(.heavy)
                 .foregroundStyle(.appleMusic.opacity(0.8))
@@ -226,6 +227,9 @@ struct PlayerView: View {
     private func mainInit() async throws {
         do {
             if authService.status != .authorized { await authService.authorizeAction() }
+            if !subscriptionService.isSubscriptionActive {
+                customFilterService.customFilterModel = nil
+            }
             playerViewModel.appleUserID = authService.appleUserID
             if customFilterService.customFilterModel == nil {
                 if let userID = authService.appleUserID {

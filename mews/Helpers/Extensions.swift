@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RevenueCat
 
 extension Array where Element == SongModel {
     var library: [SongModel] {
@@ -63,7 +64,7 @@ extension PlayerViewModel {
                 case .addedToLibrary:
                     self?.showAddedToast = false
                 case .limitReached:
-                    self?.showLimitToast = false
+                    return
                 }
             }
         }
@@ -78,7 +79,7 @@ extension PlayerViewModel {
     
     func triggerStore() {
         withAnimation(.bouncy.speed(0.5)) {
-            showStore.toggle()
+            showPaywall.toggle()
             return
         }
     }
@@ -91,5 +92,35 @@ extension PlayerViewModel {
     func pauseAvPlayer() {
         avPlayer.pause()
         isAvPlaying = false
+    }
+}
+
+extension SubscriptionPeriod {
+    
+    var durationTitle: String {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        var components = DateComponents()
+        
+        switch self.unit {
+        case .day:
+            components.day = self.value
+        case .week:
+            components.weekOfMonth = self.value
+        case .month:
+            components.month = self.value
+        case .year:
+            components.year = self.value
+        default:
+            return "\(self.value)"
+        }
+        
+        return formatter.string(from: components) ?? "\(self.value)"
+    }
+    
+    var periodTitle: String {
+        let periodString = "\(self.durationTitle)"
+        let pluralized = self.value > 1 ? periodString + "s" : periodString
+        return pluralized
     }
 }

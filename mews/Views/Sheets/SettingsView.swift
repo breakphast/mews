@@ -132,7 +132,7 @@ struct SettingsView: View {
         case .playlist:
             showPlaylists.toggle()
         case .upgrade, .restore:
-            playerViewModel.showStore.toggle()
+            playerViewModel.showPaywall.toggle()
             dismiss()
         case .review:
             requestAppReview()

@@ -44,6 +44,10 @@ struct Helpers {
         return UserDefaults.standard.object(forKey: key) as? T
     }
     
+    static func deleteFromUserDefaults(forKey key: String) {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+    
     #if DEBUG
     static let subscriptionGroupID = "090876BB"
     #else

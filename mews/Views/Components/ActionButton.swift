@@ -14,6 +14,7 @@ struct ActionButton: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(LibraryService.self) var libraryService
     @Environment(CustomFilterService.self) var customFilterService
+    @Environment(SubscriptionService.self) var subscriptionService
     @Environment(\.colorScheme) var colorScheme
     
     var liked: Bool? = nil
@@ -40,14 +41,20 @@ struct ActionButton: View {
     private func selectionButton(_ liked: Bool) -> some View {
         Button {
             guard !playerViewModel.browseLimitReached else {
+                playerViewModel.limitedSongID = playerViewModel.currentSong?.id ?? ""
+                Helpers.saveToUserDefaults(playerViewModel.limitedSongID, forKey: "limitedSongID")
+                
                 playerViewModel.triggerToast(type: .limitReached)
+                playerViewModel.showPaywall.toggle()
                 return
             }
             
             Task { @MainActor in
                 playerViewModel.opacity = 0
                 playerViewModel.switchingSongs = true
-                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
+                }
                 #if !targetEnvironment(simulator)
                 let playlist = await LibraryService.getPlaylist(libraryService.activePlaylist)
                 #else
@@ -69,8 +76,6 @@ struct ActionButton: View {
                 if customFilter?.songs == [] {
                     customFilterService.active = false
                 }
-                
-                if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
             }
         } label: {
             Image(systemName: liked ? "heart.fill" : "xmark")
@@ -93,7 +98,10 @@ struct ActionButton: View {
     
     private func customFilterButton() -> some View {
         Button {
-            Task { await checkSubscriptionStatus() }
+            guard subscriptionService.isSubscriptionActive || customFilter != nil else {
+                playerViewModel.showPaywall.toggle()
+                return
+            }
             
             if let customFilter {
                 if !customFilterService.active {
@@ -107,8 +115,6 @@ struct ActionButton: View {
                     customFilterService.active = false
                     advanceWithCustomSongs(customFilter)
                 }
-            } else {
-                playerViewModel.showStore.toggle()
             }
         } label: {
             Image(systemName: "wand.and.stars")
@@ -143,34 +149,7 @@ struct ActionButton: View {
             try await customFilterService.fetchCustomFilter()
             playerViewModel.triggerFilters()
         }
-    }
-    
-    func checkSubscriptionStatus() async -> Bool {
-        do {
-            let products = try await Product.products(for: [StoreContents.productIdentifier])
-            guard let subscriptionProduct = products.first else { return false }
-            
-            let status = try await subscriptionProduct.subscription?.status.first
-            
-            if let state = status?.state {
-                if state == .subscribed {
-                    print("Subscription active.")
-                    return true
-                }
-            }
-        } catch {
-            print("Error fetching subscription status: \(error)")
-        }
-        print("Failed to fetch subscription status.")
-        if let _ = customFilterService.customFilterModel {
-            try? await customFilterService.deleteCustomFilter(customFilterService.customFilterModel!)
-            customFilterService.customFilterModel = nil
-            customFilterService.active = false
-            try? await playerViewModel.swipeAction(liked: nil, recSongs: activeSongs, limit: customFilter == nil)
-        }
-        
-        return false
-    }
+    }    
 }
 
 //#Preview {

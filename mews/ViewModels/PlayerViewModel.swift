@@ -23,7 +23,7 @@ final class PlayerViewModel {
     var initialLoad = false
     var showFilters = false
     var showSettings = false
-    var showStore = false
+    var showPaywall = false
     var showAddedToast = false
     var showLimitToast = false
     var scale: CGFloat = 50
@@ -39,11 +39,15 @@ final class PlayerViewModel {
     var browseLimitReached: Bool {
         songsBrowsed >= Helpers.songLimit
     }
+    var limitedSongID: String?
     
     init() {
         loadInitialLoad()
         configureAudioSession()
         avPlayer.actionAtItemEnd = .none
+        if let limitSongID: String = Helpers.getFromUserDefaults(forKey: "limitedSongID") {
+            self.limitedSongID  = limitSongID
+        }
         
         // Set up loop
         if avPlayer.actionAtItemEnd == .none {
@@ -141,8 +145,17 @@ final class PlayerViewModel {
                 progressMessage = "Wrapping up..."
                 progress = 0.8
             }
-            print(libraryService.songModelManager.recSongs.count)
-            if let song = libraryService.songModelManager.recSongs.randomElement() {
+            
+            var song: SongModel?
+            if let limitedSongID {
+                song = libraryService.songModelManager.recSongs.first(where: {
+                    $0.id == limitedSongID
+                })
+            } else {
+                song = libraryService.songModelManager.recSongs.randomElement()
+            }
+            
+            if let song {
                 withAnimation(.easeInOut) {
                     progressMessage = "Loading complete!"
                     progress = 1
@@ -151,7 +164,16 @@ final class PlayerViewModel {
                 saveInitialLoad()
             }
         } else {
-            if let song = libraryService.songModelManager.recSongs.randomElement() {
+            var song: SongModel?
+            if let limitedSongID {
+                song = libraryService.songModelManager.recSongs.first(where: {
+                    $0.id == limitedSongID
+                })
+            } else {
+                song = libraryService.songModelManager.recSongs.randomElement()
+            }
+            
+            if let song {
                 await assignPlayerSong(song: song)
             }
         }

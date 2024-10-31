@@ -15,7 +15,7 @@ struct ToastView: View {
         HStack(spacing: 4) {
             Image(systemName: type == .addedToLibrary ? "heart.fill" : "exclamationmark.triangle.fill")
                 .foregroundColor(type == .addedToLibrary ? .appleMusic : .red)
-            Text(type == .addedToLibrary ? "Added to library" : "Browse limit reached")
+            Text(type == .addedToLibrary ? "Added to library" : "Daily limit reached")
                 .fontWeight(.semibold)
                 .foregroundStyle(.snow)
         }
