@@ -41,39 +41,21 @@ struct ActionButton: View {
     private func selectionButton(_ liked: Bool) -> some View {
         Button {
             guard !playerViewModel.browseLimitReached else {
-                playerViewModel.limitedSongID = playerViewModel.currentSong?.id ?? ""
-                Helpers.saveToUserDefaults(playerViewModel.limitedSongID, forKey: "limitedSongID")
-                
-                playerViewModel.triggerToast(type: .limitReached)
-                playerViewModel.showPaywall.toggle()
+                Task { @MainActor in
+                    if await tryResetSongsBrowsed() == true {
+                        selectionAction(liked: liked)
+                    } else {
+                        playerViewModel.limitedSongID = playerViewModel.currentSong?.id ?? ""
+                        Helpers.saveToUserDefaults(playerViewModel.limitedSongID, forKey: "limitedSongID")
+                        
+                        playerViewModel.triggerToast(type: .limitReached)
+                        playerViewModel.showPaywall.toggle()
+                    }
+                }
                 return
             }
             
-            Task { @MainActor in
-                playerViewModel.opacity = 0
-                playerViewModel.switchingSongs = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
-                }
-                
-                let playlist = await libraryService.getPlaylist()
-                                
-                if let song = playerViewModel.currentSong {
-                    try await libraryService.songModelManager.deleteSongModel(songModel: song)
-                    try await libraryService.songModelManager.fetchItems()
-                }
-                
-                try await playerViewModel.swipeAction(
-                    liked: liked,
-                    recSongs: activeSongs,
-                    playlist: playlist,
-                    limit: customFilter == nil
-                )
-                
-                if customFilter?.songs == [] {
-                    customFilterService.active = false
-                }
-            }
+            selectionAction(liked: liked)
         } label: {
             Image(systemName: liked ? "heart.fill" : "xmark")
                 .font(.largeTitle)
@@ -90,6 +72,47 @@ struct ActionButton: View {
                         }
                         .shadow(color: .snow.opacity(colorScheme == .light ? 0.2 : 0.05), radius: 6, x: 2, y: 4)
                 }
+        }
+    }
+    
+    private func tryResetSongsBrowsed() async -> Bool {
+        if let appleUserID = playerViewModel.appleUserID, let browsedCount = await APIService.fetchSongsBrowsed(for: appleUserID) {
+            if browsedCount == 0 {
+                playerViewModel.songsBrowsed = browsedCount
+                playerViewModel.showLimitToast = false
+                Helpers.deleteFromUserDefaults(forKey: "limitedSongID")
+                print("Reset songs browsed")
+                return true
+            }
+        }
+        return false
+    }
+    
+    private func selectionAction(liked: Bool) {
+        Task { @MainActor in
+            playerViewModel.opacity = 0
+            playerViewModel.switchingSongs = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
+            }
+            
+            let playlist = await libraryService.getPlaylist()
+                            
+            if let song = playerViewModel.currentSong {
+                try await libraryService.songModelManager.deleteSongModel(songModel: song)
+                try await libraryService.songModelManager.fetchItems()
+            }
+            
+            try await playerViewModel.swipeAction(
+                liked: liked,
+                recSongs: activeSongs,
+                playlist: playlist,
+                limit: customFilter == nil
+            )
+            
+            if customFilter?.songs == [] {
+                customFilterService.active = false
+            }
         }
     }
     
