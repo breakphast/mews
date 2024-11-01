@@ -16,7 +16,7 @@ struct SettingsView: View {
     @Environment(LibraryService.self) var libraryService
     @Environment(\.openURL) var openURL
     
-    @State private var selectedPlaylist = "Found with DiscoMuse"
+    @State private var selectedPlaylist = ""
     @State private var showPlaylists = false
     
     private var customfilterActive: Bool {
@@ -76,9 +76,11 @@ struct SettingsView: View {
             .padding(.leading, 24)
             .padding(.trailing, 16)
         }
-        .task {
+        .onAppear {
             if let playlistName: String = Helpers.getFromUserDefaults(forKey: "defaultPlaylist") {
                 selectedPlaylist = playlistName
+            } else if libraryService.saveToLibrary == true {
+                selectedPlaylist = "Library"
             }
         }
         .onChange(of: selectedPlaylist) { _, playlistName in
@@ -86,7 +88,8 @@ struct SettingsView: View {
                 $0.name == playlistName
             }) {
                 libraryService.activePlaylist = playlist
-                print(libraryService.activePlaylist?.name ?? "None")
+            } else if libraryService.saveToLibrary == true {
+                selectedPlaylist = "Library"
             }
         }
         .sheet(isPresented: $showPlaylists) {
@@ -106,7 +109,7 @@ struct SettingsView: View {
                     settingsButtonAction(item: item)
                 }
             } label: {
-                HStack(alignment: .center) {
+                HStack(alignment: .center, spacing: 0) {
                     Image(systemName: item.icon)
                         .font(.title2.bold())
                         .frame(width: 33, alignment: .center)
@@ -114,7 +117,7 @@ struct SettingsView: View {
                     if playlist {
                         Text(selectedPlaylist)
                             .bold()
-                            .lineLimit(2)
+                            .lineLimit(1)
                             .foregroundStyle(customFilterService.customFilterModel == nil ? .gray : .appleMusic)
                     }
                     Spacer()
@@ -190,7 +193,7 @@ enum SettingsItem {
     var text: String {
         switch self {
         case .playlist:
-            return "Save liked songs to:"
+            return "Save liked songs to:  "
         case .upgrade:
             return "Upgrade to Pro"
         case .restore:

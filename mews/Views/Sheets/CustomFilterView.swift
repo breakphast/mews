@@ -20,6 +20,7 @@ struct CustomFilterView: View {
     @State private var genreText = ""
     @FocusState private var focus: Bool
     @State private var selectedSeeds = [String: SeedType]()
+    @State private var artistSearchResults = MusicItemCollection<Artist>()
     
     private var artists: [String] {
         libraryService.artists.filter { artist in
@@ -70,7 +71,14 @@ struct CustomFilterView: View {
                     getRecsButton
                 }
                 
-                seedsScrollView
+                SeedsScrollView(
+                    artistText: $artistText,
+                    genreText: $genreText,
+                    selectedSeeds: $selectedSeeds,
+                    artistSearchResults: $artistSearchResults,
+                    focus: $focus,
+                    filter: filter
+                )
             }
             .padding(.top, 8)
         }
@@ -130,35 +138,25 @@ struct CustomFilterView: View {
         .padding(.horizontal)
     }
     
-    func removeSeed(seed: String, filter: CustomFilterModel) {
-        selectedSeeds.removeValue(forKey: seed)
-        
-        if let index = filter.artists.firstIndex(where: {$0.value == seed}) {
-            filter.songs.removeAll(where: {$0.recSeed == seed})
-            filter.artists.remove(at: index)
-        }
-                
-        // Remove from genreSeeds if it contains the seed
-        if let genre = Genres.genres.first(where: { $0.key == seed })?.value, let index = filter.genreSeeds.firstIndex(of: genre) {
-            filter.songs.removeAll(where: {$0.recSeed == seed})
-            filter.genreSeeds.remove(at: index)
-        }
-        try? Helpers.container.mainContext.save()
-    }
-    
-    func addSeeds() {
-        for artist in filter.artists {
-            selectedSeeds[artist.value] = .artist
-        }
-        for genre in filter.genreSeeds {
-            if let genre = Genres.genres.first(where: { $0.value == genre })?.key {
-                selectedSeeds[genre] = .genre
-            }
+    var searchFieldText: String {
+        switch SeedOption(rawValue: filter.activeSeedOption) {
+        case .artist:
+            "Search for artists"
+        case .genre:
+            "Search for genres"
+        case .none:
+            "Search"
         }
     }
-    
     private var seedTextField: some View {
-        TextField("Search for \(filter.activeSeedOption == SeedOption.artist.rawValue ? "artist in library" : "genre")", text: (filter.activeSeedOption == SeedOption.artist.rawValue ? $artistText : $genreText))
+        ZStack(alignment: .trailing) {
+            TextField(searchFieldText, text: $artistText, onCommit: {
+                if artistText.isEmpty {
+                    artistSearchResults = []
+                } else {
+                    performSearch(query: artistText)
+                }
+            })
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background {
@@ -172,55 +170,18 @@ struct CustomFilterView: View {
             .padding(.horizontal)
             .tint(.appleMusic)
             .focused($focus)
-    }
-    
-    private var seedsScrollView: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
-                if seedOptions.isEmpty {
-                    Text("No results found")
-                        .font(.headline)
+            .submitLabel(.search)
+            
+            if !artistText.isEmpty {
+                Button(action: {
+                    artistText = ""
+                    artistSearchResults = []
+                }) {
+                    Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
-                } else {
-                    ForEach(seedOptions, id: \.self) { option in
-                        VStack {
-                            Button {
-                                focus = false
-                                withAnimation(.bouncy) {
-                                    if selectedSeeds.count < 5 {
-                                        selectedSeeds[option] = filter.activeSeedOption == SeedOption.artist.rawValue ?
-                                            .artist : .genre
-                                    }
-                                }
-                                
-                                Task {
-                                    guard await validArtistCheck(artistName: option, token: token ?? "") else { return }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(option)
-                                        .fontWeight(.semibold)
-                                    Spacer()
-                                    if selectedSeeds.keys.contains(option) {
-                                        Image(systemName: "wand.and.stars")
-                                            .foregroundStyle(.appleMusic)
-                                            .bold()
-                                    }
-                                }
-                                .font(.title3)
-                            }
-                            .tint(selectedSeeds.keys.contains(option) ? .appleMusic.opacity(0.9) : .snow)
-                            
-                            Divider()
-                        }
-                        .padding(.vertical, 4)
-                    }
                 }
+                .padding(.trailing, 24)
             }
-            .padding(.horizontal)
-        }
-        .transaction { transaction in
-            transaction.animation = nil
         }
     }
     
@@ -256,6 +217,47 @@ struct CustomFilterView: View {
             return false
         } else {
             return true
+        }
+    }
+    
+    func performSearch(query: String) {
+        Task {
+            var request = MusicCatalogSearchRequest(term: query, types: [Artist.self])
+            request.limit = 3 // Adjust as needed
+            
+            do {
+                let response = try await request.response()
+                self.artistSearchResults = response.artists
+            } catch {
+                print("Search failed: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func removeSeed(seed: String, filter: CustomFilterModel) {
+        selectedSeeds.removeValue(forKey: seed)
+        
+        if let index = filter.artists.firstIndex(where: {$0.value == seed}) {
+            filter.songs.removeAll(where: {$0.recSeed == seed})
+            filter.artists.remove(at: index)
+        }
+                
+        // Remove from genreSeeds if it contains the seed
+        if let genre = Genres.genres.first(where: { $0.key == seed })?.value, let index = filter.genreSeeds.firstIndex(of: genre) {
+            filter.songs.removeAll(where: {$0.recSeed == seed})
+            filter.genreSeeds.remove(at: index)
+        }
+        try? Helpers.container.mainContext.save()
+    }
+    
+    func addSeeds() {
+        for artist in filter.artists {
+            selectedSeeds[artist.value] = .artist
+        }
+        for genre in filter.genreSeeds {
+            if let genre = Genres.genres.first(where: { $0.value == genre })?.key {
+                selectedSeeds[genre] = .genre
+            }
         }
     }
 }

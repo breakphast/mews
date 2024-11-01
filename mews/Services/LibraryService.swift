@@ -18,6 +18,7 @@ class LibraryService {
     var playlists = [Playlist]()
     var artists = [String]()
     var activePlaylist: Playlist?
+    var saveToLibrary: Bool?
     
     var likeActionOptions: [String] {
         return playlists.map { $0.name }
@@ -40,6 +41,9 @@ class LibraryService {
                 if let playlist = await getPlaylist(playlistName) {
                     activePlaylist = playlist
                 }
+            }
+            if let saveToLibrary: String = Helpers.getFromUserDefaults(forKey: "saveToLibrary") {
+                self.saveToLibrary = true
             }
         }
     }
@@ -200,9 +204,11 @@ class LibraryService {
         }
     }
     
-    static func getPlaylist(_ activePlaylist: Playlist?) async -> Playlist? {
+    func getPlaylist() async -> Playlist? {
         let libraryRequest = MusicLibraryRequest<Playlist>()
         let libraryResponse = try? await libraryRequest.response()
+        
+        guard saveToLibrary == nil else { return nil }
         
         if let activePlaylist {
             return activePlaylist

@@ -56,7 +56,7 @@ struct ActionButton: View {
                     if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
                 }
                 
-                let playlist = await LibraryService.getPlaylist(libraryService.activePlaylist)
+                let playlist = await libraryService.getPlaylist()
                                 
                 if let song = playerViewModel.currentSong {
                     try await libraryService.songModelManager.deleteSongModel(songModel: song)

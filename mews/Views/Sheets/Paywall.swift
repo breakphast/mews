@@ -104,6 +104,7 @@ struct Paywall: View {
                             Text(features[i].description)
                                 .foregroundStyle(.snow.opacity(0.9))
                                 .font(.subheadline)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -145,7 +146,7 @@ struct Paywall: View {
                 .frame(height: isSubscribed ? 44 : nil)
                 .background {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(isSubscribed ? .gray.opacity(0.8) : .appleMusic.opacity(0.8))
+                        .fill(isSubscribed ? .appleMusic.opacity(0.4) : .appleMusic.opacity(0.8))
                 }
                 .disabled(isSubscribed)
             }
@@ -208,4 +209,5 @@ struct Paywall: View {
     Paywall()
         .environment(PlayerViewModel())
         .environment(CustomFilterService(songModelManager: SongModelManager(), spotifyTokenManager: SpotifyTokenManager()))
+        .environment(SubscriptionService())
 }

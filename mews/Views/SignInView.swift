@@ -33,78 +33,24 @@ struct SignInView: View {
             
             Spacer()
             
-            VStack(spacing: 32) {
+            VStack(spacing: 24) {
                 VStack(spacing: 8) {
                     Text("Connect Your Apple Music")
-                        .font(.title2.bold())
+                        .font(.title.bold())
                     Text("Unlock DiscoMuse’s complete potential—personalized just for Apple Music users.")
                         .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 40)
+                        .multilineTextAlignment(.center)
                 }
                 .foregroundStyle(.snow)
-                
                 VStack(alignment: .leading, spacing: 24) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle")
-                            .font(.title3.bold())
-                            .frame(width: 44, height: 44)
-                            .background(.appleMusic.opacity(0.8), in: .rect(cornerRadius: 16))
-                            .foregroundStyle(.white)
-                        VStack(alignment: .leading) {
-                            Text("Personalized Experience")
-                                .bold()
-                                .foregroundStyle(.snow)
-                            Text("Recommendations based on your listening history.")
-                                .foregroundStyle(.snow.opacity(0.9))
-                                .font(.subheadline)
-                        }
-                    }
-                    HStack(spacing: 8) {
-                        Image(systemName: "lock.fill")
-                            .font(.title3.bold())
-                            .frame(width: 44, height: 44)
-                            .background(.appleMusic.opacity(0.8), in: .rect(cornerRadius: 16))
-                            .foregroundStyle(.white)
-                        VStack(alignment: .leading) {
-                            Text("Sync Data")
-                                .bold()
-                                .foregroundStyle(.snow)
-                            Text("Save your preferences and data across devices.")
-                                .foregroundStyle(.snow.opacity(0.9))
-                                .font(.subheadline)
-                        }
-                    }
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle")
-                            .font(.title3.bold())
-                            .frame(width: 44, height: 44)
-                            .background(.appleMusic.opacity(0.8), in: .rect(cornerRadius: 16))
-                            .foregroundStyle(.white)
-                        VStack(alignment: .leading) {
-                            Text("Add to library")
-                                .bold()
-                                .foregroundStyle(.snow)
-                            Text("Add liked songs directly to your Apple Music library")
-                                .foregroundStyle(.snow.opacity(0.9))
-                                .font(.subheadline)
-                        }
-                    }
-                    HStack(spacing: 8) {
-                        Image(systemName: "wand.and.stars")
-                            .font(.title3.bold())
-                            .frame(width: 44, height: 44)
-                            .background(.appleMusic.opacity(0.8), in: .rect(cornerRadius: 16))
-                            .foregroundStyle(.white)
-                        VStack(alignment: .leading) {
-                            Text("Premium Features")
-                                .bold()
-                                .foregroundStyle(.snow)
-                            Text("Full access to PRO features.")
-                                .foregroundStyle(.snow.opacity(0.9))
-                                .font(.subheadline)
-                        }
-                    }
+                    featureElement(icon: "person.crop.circle", title: "Personalized Experience", description: "Recommendations based on your listening history.")
+                    featureElement(icon: "lock.fill", title: "Sync Data", description: "Save your preferences and data across devices.")
+                    featureElement(icon: "plus.circle", title: "Add to library", description: "Add liked songs directly to your Apple Music library.")
+                    featureElement(icon: "wand.and.stars", title: "Premium Features", description: "Full access to PRO features.")
+                    featureElement(icon: "headphones.circle", title: "Use Without Apple Music", description: "Apple Music unlocks more, but it’s not required.")
                 }
-                .padding(.top, 8)
                 .padding(.horizontal)
             }
             .padding(.horizontal)
@@ -135,6 +81,25 @@ struct SignInView: View {
         .frame(height: 44)
         .padding(.horizontal, 24)
         .signInWithAppleButtonStyle(.whiteOutline)
+    }
+    
+    private func featureElement(icon: String, title: String, description: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3.bold())
+                .frame(width: 44, height: 44)
+                .background(.appleMusic.opacity(0.8), in: .rect(cornerRadius: 16))
+                .foregroundStyle(.white)
+            VStack(alignment: .leading) {
+                Text(title)
+                    .bold()
+                    .foregroundStyle(.snow)
+                Text(description)
+                    .foregroundStyle(.snow.opacity(0.9))
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 
