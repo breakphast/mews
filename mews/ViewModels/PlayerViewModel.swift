@@ -106,11 +106,12 @@ final class PlayerViewModel {
         if let recSong = songs.randomElement() {
             guard let appleUserID else { return }
             
+            await assignPlayerSong(song: recSong)
+            
             if limit {
                 await APIService.updateSongsBrowsed(for: appleUserID)
                 songsBrowsed = await APIService.fetchSongsBrowsed(for: appleUserID) ?? 0
             }
-            await assignPlayerSong(song: recSong)
         }
         
         if liked, let song = await LibraryService.fetchCatalogSong(song: currentSong) {

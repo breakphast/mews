@@ -18,7 +18,7 @@ class LibraryService {
     var playlists = [Playlist]()
     var artists = [String]()
     var activePlaylist: Playlist?
-    var saveToLibrary: Bool?
+    var saveToLibrary = false
     
     var likeActionOptions: [String] {
         return playlists.map { $0.name }
@@ -42,7 +42,7 @@ class LibraryService {
                     activePlaylist = playlist
                 }
             }
-            if let saveToLibrary: String = Helpers.getFromUserDefaults(forKey: "saveToLibrary") {
+            if let _: String = Helpers.getFromUserDefaults(forKey: "saveToLibrary") {
                 self.saveToLibrary = true
             }
         }
@@ -204,21 +204,26 @@ class LibraryService {
         }
     }
     
-    func getPlaylist() async -> Playlist? {
+    func getPlaylist() async {
         let libraryRequest = MusicLibraryRequest<Playlist>()
-        let libraryResponse = try? await libraryRequest.response()
-        
-        guard saveToLibrary == nil else { return nil }
-        
-        if let activePlaylist {
-            return activePlaylist
-        } else if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == "Found with DiscoMuse" }) {
-            return defaultPlaylist
-        } else if let newDefaultPlaylist = await Self.createDefaultPlaylist() {
-            return newDefaultPlaylist
+        var libraryResponse: MusicLibraryResponse<Playlist>?
+        do {
+            libraryResponse = try await libraryRequest.response()
+        } catch {
+            return
         }
         
-        return nil
+        guard !saveToLibrary else { return }
+        
+        if let activePlaylist {
+            self.activePlaylist = activePlaylist
+        } else if let defaultPlaylist = libraryResponse?.items.first(where: { $0.name == "Found with DiscoMuse" }) {
+            self.activePlaylist = defaultPlaylist
+        } else if let newDefaultPlaylist = await Self.createDefaultPlaylist() {
+            self.activePlaylist = newDefaultPlaylist
+        }
+        
+        return
     }
     
     static func createDefaultPlaylist() async -> Playlist? {

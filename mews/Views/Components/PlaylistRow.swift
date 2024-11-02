@@ -46,7 +46,7 @@ struct PlaylistRow: View {
     var body: some View {
         Button {
             if let playlist {
-                libraryService.saveToLibrary = nil
+                libraryService.saveToLibrary = false
                 Helpers.deleteFromUserDefaults(forKey: "saveToLibrary")
                 libraryService.activePlaylist = playlist
                 selected = playlist.name

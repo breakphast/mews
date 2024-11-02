@@ -92,23 +92,19 @@ struct ActionButton: View {
         Task { @MainActor in
             playerViewModel.opacity = 0
             playerViewModel.switchingSongs = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
-            }
-            
-            let playlist = await libraryService.getPlaylist()
-                            
+
             if let song = playerViewModel.currentSong {
                 try await libraryService.songModelManager.deleteSongModel(songModel: song)
                 try await libraryService.songModelManager.fetchItems()
             }
-            
             try await playerViewModel.swipeAction(
                 liked: liked,
                 recSongs: activeSongs,
-                playlist: playlist,
+                playlist: libraryService.activePlaylist,
                 limit: customFilter == nil
             )
+
+            if liked { playerViewModel.triggerToast(type: .addedToLibrary) }
             
             if customFilter?.songs == [] {
                 customFilterService.active = false

@@ -19,7 +19,7 @@ struct PlaylistsView: View {
         } else if libraryService.saveToLibrary == true {
             "Library"
         } else {
-            "Found with DiscoMuse"
+            ""
         }
     }
     
@@ -62,10 +62,15 @@ struct PlaylistsView: View {
                             }
                         } else {
                             Spacer()
-                            Text("No playlists found")
-                                .font(.headline)
-                                .foregroundColor(.gray)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                            VStack(spacing: 12) {
+                                Text("No playlists found")
+                                    .font(.headline)
+                                Text("Connecting an Apple Music account let's you save songs directy to your playlists or library.")
+                                    .font(.subheadline)
+                                    .padding(.horizontal, 24)
+                            }
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             Spacer()
                         }
                     }

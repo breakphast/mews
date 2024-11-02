@@ -232,6 +232,11 @@ struct PlayerView: View {
                     }
                 }
             }
+            if authService.activeSubscription == nil || customFilter == nil {
+                libraryService.activePlaylist = nil
+            } else if authService.activeSubscription != nil {
+                await libraryService.getPlaylist()
+            }
             try await playerViewModel.authorizeAndFetch(
                 libraryService: libraryService,
                 spotifyService: spotifyService
