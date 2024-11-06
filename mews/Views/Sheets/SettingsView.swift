@@ -142,9 +142,9 @@ struct SettingsView: View {
         case .contact:
             openEmail(to: "discoSupport@gmail.com", subject: "Support Inquiry", body: "Hello, I need help with...")
         case .policy:
-            openURL(URL(string: "https://www.devsmond.com")!)
+            openURL(URL(string: "https://github.com/breakphast/DiscoMuse/blob/main/PrivacyPolicy.md")!)
         case .terms:
-            openURL(URL(string: "https://www.devsmond.com")!)
+            openURL(URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
         }
     }
     

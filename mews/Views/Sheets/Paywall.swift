@@ -11,6 +11,7 @@ import RevenueCat
 
 struct Paywall: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.openURL) var openURL
     @Environment(\.colorScheme) var colorScheme
     @Environment(CustomFilterService.self) var customFilterService
     @Environment(PlayerViewModel.self) var playerViewModel
@@ -35,6 +36,9 @@ struct Paywall: View {
             .background(Color.appleMusic.opacity(0.9).gradient)
             .padding(.bottom, 32)
             VStack {
+                if Helpers.idiom == .pad {
+                    Spacer()
+                }
                 featuresElement
                     .padding(.horizontal)
                 Spacer()
@@ -163,22 +167,28 @@ struct Paywall: View {
                 .foregroundStyle(.appleMusic.opacity(0.9))
         }
     }
+    
     private var termsButton: some View {
-        Button {
-            
-        } label: {
-            HStack(spacing: 0) {
-                Text("Terms of Service ")
+        HStack(spacing: 0) {
+            Button(action: {
+                openURL(URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+            }) {
+                Text("Terms of Service")
                     .foregroundStyle(.appleMusic.opacity(0.8))
-
-                Text("and ")
-
+            }
+            .tint(.snow)
+            
+            Text(" and ")
+            
+            Button(action: {
+                openURL(URL(string: "https://github.com/breakphast/DiscoMuse/blob/main/PrivacyPolicy.md")!)
+            }) {
                 Text("Privacy Policy")
                     .foregroundStyle(.appleMusic.opacity(0.8))
             }
-            .font(.caption)
+            .tint(.snow)
         }
-        .tint(.snow)
+        .font(.caption)
     }
     
     let features: [(title: String, description: String)] = [

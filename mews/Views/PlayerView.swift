@@ -22,6 +22,10 @@ struct PlayerView: View {
     private var songModelManager: SongModelManager { libraryService.songModelManager }
     private var customFilter: CustomFilterModel? { customFilterService.customFilterModel }
     
+    private var accessGranted: Bool {
+        authService.status == .authorized
+    }
+    
     var body: some View {
         ZStack {
             Color.oreo.ignoresSafeArea()
@@ -93,6 +97,17 @@ struct PlayerView: View {
                 ToastView(type: .limitReached)
                     .transition(.move(edge: .top))
                     .frame(maxHeight: .infinity, alignment: .top)
+            }
+        }
+        .overlay {
+            if !accessGranted {
+                ZStack {
+                    Color.oreo.ignoresSafeArea()
+                    Text("You must grant DiscoMuse access to your Media Library to continue")
+                        .multilineTextAlignment(.center)
+                        .bold()
+                        .padding(.horizontal, 40)
+                }
             }
         }
     }
