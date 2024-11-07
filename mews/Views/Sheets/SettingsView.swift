@@ -14,10 +14,14 @@ struct SettingsView: View {
     @Environment(PlayerViewModel.self) var playerViewModel
     @Environment(CustomFilterService.self) var customFilterService
     @Environment(LibraryService.self) var libraryService
+    @Environment(AuthService.self) var authService
     @Environment(\.openURL) var openURL
     
     @State private var selectedPlaylist = ""
     @State private var showPlaylists = false
+    @State private var showDeleteSheet = false
+    @State private var showDeletePrompt = false
+    @State private var deletedAccount = false
     
     private var customfilterActive: Bool {
         customFilterService.customFilterModel != nil
@@ -45,7 +49,7 @@ struct SettingsView: View {
                 Text("Settings")
                     .font(.largeTitle)
                     .fontWeight(.black)
-
+                
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         VStack(alignment: .leading, spacing: 24) {
@@ -68,6 +72,8 @@ struct SettingsView: View {
                             button(item: .policy)
                             separator
                             button(item: .terms)
+                            separator
+                            button(item: .delete)
                         }
                     }
                 }
@@ -94,6 +100,17 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showPlaylists) {
             PlaylistsView(selected: $selectedPlaylist)
+        }
+        .sheet(isPresented: $showDeleteSheet, onDismiss: {
+            if deletedAccount {
+                deleteAccountLocally()
+                print("Dismissed and deleted account part 2.")
+            }
+        }, content: {
+            deleteInstructions
+        })
+        .sheet(isPresented: $showDeleteSheet) {
+            deleteInstructions
         }
     }
     
@@ -145,6 +162,71 @@ struct SettingsView: View {
             openURL(URL(string: "https://github.com/breakphast/DiscoMuse/blob/main/PrivacyPolicy.md")!)
         case .terms:
             openURL(URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+        case .delete:
+            showDeleteSheet.toggle()
+            
+        }
+    }
+    
+    private var deleteInstructions: some View {
+        VStack(spacing: 48) {
+            Text("Account Deletion Instructions")
+                .font(.title3)
+                .fontWeight(.heavy)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                Text("1. Open the **Settings** app.")
+                Text("2. Tap on **Apple ID** (your name at the top).")
+                Text("3. Select **Sign in with Apple**.")
+                Text("4. Find **DiscoMuse or Mews** in the list.")
+                Text("5. Tap **Delete** to remove access.")
+            }
+            
+            Text("Pressing **Delete & Open Settings** will first remove your data locally from this device, and then open the Apple ID settings for you to proceed with the deletion.")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button(action: { showDeletePrompt.toggle() }) {
+                Text("Delete & Open Settings")
+                    .bold()
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .alert(isPresented: $showDeletePrompt) {
+                Alert(
+                    title: Text("Confirm Deletion"),
+                    message: Text("Are you sure you want to delete your account from this device? This action will remove your information locally, and you will be logged out."),
+                    primaryButton: .destructive(Text("Delete & Open Settings")) {
+                        deletedAccount = true
+                        openSettings()
+                        dismiss()
+                        print("Dismissed and deleted account.")
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal)
+    }
+    
+    private func deleteAccountLocally() {
+        playerViewModel.pauseAvPlayer()
+        authService.appleUserID = nil
+        authService.status = .notDetermined
+        Helpers.deleteFromUserDefaults(forKey: "appleUserID")
+    }
+    
+    private func openSettings() {
+        if let url = URL(string: "App-Prefs:prefs:root=ACCESSIBILITY") {
+            openURL(url)
+        } else {
+            print("Unable to open Apple ID settings.")
         }
     }
     
@@ -160,6 +242,8 @@ struct SettingsView: View {
     SettingsView()
         .environment(PlayerViewModel())
         .environment(LibraryService(songModelManager: SongModelManager()))
+        .environment(AuthService())
+        .environment(CustomFilterService(songModelManager: SongModelManager(), spotifyTokenManager: SpotifyTokenManager()))
 }
 
 enum SettingsItem {
@@ -170,6 +254,7 @@ enum SettingsItem {
     case contact
     case policy
     case terms
+    case delete
     
     var icon: String {
         switch self {
@@ -187,6 +272,8 @@ enum SettingsItem {
             return "shield"
         case .terms:
             return "doc.plaintext"
+        case .delete:
+            return "trash"
         }
     }
     
@@ -206,6 +293,8 @@ enum SettingsItem {
             return "Privacy Policy"
         case .terms:
             return "Terms"
+        case .delete:
+            return "Remove Apple Account"
         }
     }
 }
