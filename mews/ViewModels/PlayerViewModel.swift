@@ -132,58 +132,68 @@ final class PlayerViewModel {
     
     func authorizeAndFetch(libraryService: LibraryService, spotifyService: SpotifyService) async throws {
         let songModelManager = libraryService.songModelManager
-        try await songModelManager.fetchItems()
         
-        if songModelManager.savedSongs.isEmpty || songModelManager.recSongs.count <= 10 {
-            // Wrapping animations in async block to separate UI updates
-            withAnimation(.easeInOut) {
-                progressMessage = "Fetching library songs..."
-                progress = 0.2
-            }
-            try await fetchAndPersistLibrarySongs(libraryService: libraryService)
-            
-            withAnimation(.easeInOut) {
-                progressMessage = "Getting recommendations..."
-                progress = 0.5
-            }
-            try await fetchAndPersistSpotifySongs(spotifyService: spotifyService, libraryService: libraryService)
-            
+        var fetchSuccess = false
+        var attempts = 0
+        let maxAttempts = 5  // Set an appropriate retry limit
+        
+        while !fetchSuccess && attempts < maxAttempts {
+            attempts += 1
+            print("Attempt \(attempts) to fetch songs...")
+
+            // Initial fetch of items
             try await songModelManager.fetchItems()
-            guard !songModelManager.recSongs.isEmpty else {
+            
+            // Check if items already exist
+            if songModelManager.savedSongs.isEmpty || songModelManager.recSongs.count <= 10 {
+                withAnimation(.easeInOut) {
+                    progressMessage = "Fetching library songs..."
+                    progress = 0.2
+                }
+                try await fetchAndPersistLibrarySongs(libraryService: libraryService)
+                
+                withAnimation(.easeInOut) {
+                    progressMessage = "Getting recommendations..."
+                    progress = 0.5
+                }
+                try await fetchAndPersistSpotifySongs(spotifyService: spotifyService, libraryService: libraryService)
+
+                // Re-fetch items after attempting to persist songs
+                try await songModelManager.fetchItems()
+            }
+            
+            // Check if recSongs has been populated to proceed
+            if !songModelManager.recSongs.isEmpty {
+                fetchSuccess = true
+                withAnimation(.easeInOut) {
+                    progressMessage = "Wrapping up..."
+                    progress = 0.8
+                }
+                
+                if let song = (limitedSongID != nil
+                               ? songModelManager.recSongs.first { $0.id == limitedSongID }
+                               : songModelManager.recSongs.randomElement()) {
+                    withAnimation(.easeInOut) {
+                        progressMessage = "Loading complete!"
+                        progress = 1
+                    }
+                    await assignPlayerSong(song: song)
+                    saveInitialLoad()
+                    return
+                }
+            } else {
+                // Optional message or delay for next attempt if desired
                 progressMessage = "Retrying..."
                 progress = 0
-                print("Retrying authorizeAndFetch due to empty recommendations")
-                try await authorizeAndFetch(libraryService: libraryService, spotifyService: spotifyService)
-                return
-            }
-            
-            withAnimation(.easeInOut) {
-                progressMessage = "Wrapping up..."
-                progress = 0.8
-            }
-            if let song = (limitedSongID != nil
-                           ? songModelManager.recSongs.first { $0.id == limitedSongID }
-                           : songModelManager.recSongs.randomElement()) {
-                withAnimation(.easeInOut) {
-                    progressMessage = "Loading complete!"
-                    progress = 1
-                }
-                await assignPlayerSong(song: song)
-                saveInitialLoad()
-                return
-            }
-        } else {
-            // Simplified syntax for optional binding if Swift version allows it
-            let song = limitedSongID != nil
-            ? songModelManager.recSongs.first { $0.id == limitedSongID }
-            : songModelManager.recSongs.randomElement()
-            
-            if let song {
-                await assignPlayerSong(song: song)
             }
         }
+        
+        if !fetchSuccess {
+            // Final handling if unable to fetch after max attempts
+            progressMessage = "Unable to fetch songs. Please retry."
+            return
+        }
     }
-    
     private func fetchAndPersistLibrarySongs(libraryService: LibraryService) async throws {
         let songModelManager = libraryService.songModelManager
 
