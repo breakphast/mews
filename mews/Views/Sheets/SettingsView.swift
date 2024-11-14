@@ -126,7 +126,7 @@ struct SettingsView: View {
                     settingsButtonAction(item: item)
                 }
             } label: {
-                HStack(alignment: .center, spacing: 0) {
+                HStack(alignment: .center, spacing: 8) {
                     Image(systemName: item.icon)
                         .font(.title2.bold())
                         .frame(width: 33, alignment: .center)
@@ -137,7 +137,7 @@ struct SettingsView: View {
                             .lineLimit(1)
                             .foregroundStyle(customFilterService.customFilterModel == nil ? .gray : .appleMusic)
                     }
-                    Spacer()
+//                    Spacer()
                 }
             }
             .tint(.snow)

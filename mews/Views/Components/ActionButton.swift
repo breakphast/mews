@@ -16,6 +16,8 @@ struct ActionButton: View {
     @Environment(CustomFilterService.self) var customFilterService
     @Environment(SubscriptionService.self) var subscriptionService
     @Environment(\.colorScheme) var colorScheme
+    @Binding var show: Bool
+    @Binding var currentSpot: Int
     
     var liked: Bool? = nil
     let size = Helpers.actionButtonSize
@@ -90,6 +92,12 @@ struct ActionButton: View {
     
     private func selectionAction(liked: Bool) {
         Task { @MainActor in
+            if currentSpot == 1 || currentSpot == 0 {
+                currentSpot += 1
+            } else if currentSpot == 2 {
+                Helpers.saveToUserDefaults("false", forKey: "firstTime")
+                show = false
+            }
             playerViewModel.opacity = 0
             playerViewModel.switchingSongs = true
 

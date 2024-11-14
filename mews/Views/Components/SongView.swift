@@ -14,6 +14,8 @@ struct SongView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.openURL) var openURL
     @Binding var opacity: Double
+    @Binding var show: Bool
+    @Binding var currentSpot: Int
     
     @State private var artworkImage: UIImage?
     @State private var customMode = "artist"
@@ -54,6 +56,7 @@ struct SongView: View {
                                 .aspectRatio(contentMode: .fit)
                                 .clipShape(.rect(cornerRadius: 16))
                                 .shadow(color: .snow.opacity(colorScheme == .light ? 0.25 : 0.05), radius: 8, x: 4, y: 8)
+                                .addSpotlight(0, shape: .rounded, roundedRadius: 16, text: "Tap artwork to pause or play")
                                 .overlay {
                                     if !playerViewModel.isAvPlaying {
                                         ZStack {
@@ -68,6 +71,9 @@ struct SongView: View {
                                     }
                                 }
                                 .onTapGesture {
+                                    if currentSpot == 0 {
+                                        currentSpot += 1
+                                    }
                                     withAnimation {
                                         playerViewModel.isAvPlaying ? playerViewModel.pauseAvPlayer() : playerViewModel.play()
                                     }

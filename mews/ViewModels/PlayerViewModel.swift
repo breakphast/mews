@@ -40,6 +40,8 @@ final class PlayerViewModel {
         songsBrowsed >= Helpers.songLimit
     }
     var limitedSongID: String?
+    var showSpotlight = true
+    var currentSpot: Int = 0
     
     init() {
         loadInitialLoad()
@@ -47,6 +49,9 @@ final class PlayerViewModel {
         avPlayer.actionAtItemEnd = .none
         if let limitSongID: String = Helpers.getFromUserDefaults(forKey: "limitedSongID") {
             self.limitedSongID  = limitSongID
+        }
+        if let _: String = Helpers.getFromUserDefaults(forKey: "firstTime") {
+            self.showSpotlight = false
         }
         
         // Set up loop
@@ -127,9 +132,10 @@ final class PlayerViewModel {
     
     func authorizeAndFetch(libraryService: LibraryService, spotifyService: SpotifyService) async throws {
         let songModelManager = libraryService.songModelManager
-
         try await songModelManager.fetchItems()
-        if songModelManager.savedSongs.isEmpty || libraryService.songModelManager.recSongs.count <= 10 {
+        
+        if songModelManager.savedSongs.isEmpty || songModelManager.recSongs.count <= 10 {
+            // Wrapping animations in async block to separate UI updates
             withAnimation(.easeInOut) {
                 progressMessage = "Fetching library songs..."
                 progress = 0.2
@@ -142,37 +148,35 @@ final class PlayerViewModel {
             }
             try await fetchAndPersistSpotifySongs(spotifyService: spotifyService, libraryService: libraryService)
             
+            try await songModelManager.fetchItems()
+            guard !songModelManager.recSongs.isEmpty else {
+                progressMessage = "Retrying..."
+                progress = 0
+                print("Retrying authorizeAndFetch due to empty recommendations")
+                try await authorizeAndFetch(libraryService: libraryService, spotifyService: spotifyService)
+                return
+            }
+            
             withAnimation(.easeInOut) {
                 progressMessage = "Wrapping up..."
                 progress = 0.8
             }
-            
-            var song: SongModel?
-            if let limitedSongID {
-                song = libraryService.songModelManager.recSongs.first(where: {
-                    $0.id == limitedSongID
-                })
-            } else {
-                song = libraryService.songModelManager.recSongs.randomElement()
-            }
-            
-            if let song {
+            if let song = (limitedSongID != nil
+                           ? songModelManager.recSongs.first { $0.id == limitedSongID }
+                           : songModelManager.recSongs.randomElement()) {
                 withAnimation(.easeInOut) {
                     progressMessage = "Loading complete!"
                     progress = 1
                 }
                 await assignPlayerSong(song: song)
                 saveInitialLoad()
+                return
             }
         } else {
-            var song: SongModel?
-            if let limitedSongID {
-                song = libraryService.songModelManager.recSongs.first(where: {
-                    $0.id == limitedSongID
-                })
-            } else {
-                song = libraryService.songModelManager.recSongs.randomElement()
-            }
+            // Simplified syntax for optional binding if Swift version allows it
+            let song = limitedSongID != nil
+            ? songModelManager.recSongs.first { $0.id == limitedSongID }
+            : songModelManager.recSongs.randomElement()
             
             if let song {
                 await assignPlayerSong(song: song)

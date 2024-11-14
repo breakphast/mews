@@ -36,17 +36,16 @@ struct SignInView: View {
             VStack(spacing: 24) {
                 VStack(spacing: 8) {
                     Text("Connect Your Apple Music")
-                        .font(.title.bold())
+                        .font(.title2.bold())
                     Text("Unlock DiscoMuse’s complete potential—personalized just for Apple Music users.")
                         .font(.subheadline)
-                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 40)
                         .multilineTextAlignment(.center)
                 }
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.snow)
                 VStack(alignment: .leading, spacing: 24) {
                     featureElement(icon: "person.crop.circle", title: "Personalized Experience", description: "Recommendations based on your listening history.")
-                    featureElement(icon: "lock.fill", title: "Sync Data", description: "Save your preferences and data across devices.")
                     featureElement(icon: "plus.circle", title: "Add to library", description: "Add liked songs directly to your Apple Music library.")
                     featureElement(icon: "wand.and.stars", title: "Premium Features", description: "Full access to PRO features.")
                     featureElement(icon: "headphones.circle", title: "Use Without Apple Music", description: "Apple Music unlocks more, but it’s not required.")

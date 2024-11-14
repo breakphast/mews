@@ -38,7 +38,7 @@ struct PlayerView: View {
                         navBar
                         Spacer()
                         if playerViewModel.currentSong != nil {
-                            SongView(opacity: $playerViewModel.opacity)
+                            SongView(opacity: $playerViewModel.opacity, show: $playerViewModel.showSpotlight, currentSpot: $playerViewModel.currentSpot)
                             Spacer()
                         }
                         buttons
@@ -110,6 +110,7 @@ struct PlayerView: View {
                 }
             }
         }
+        .addSpotlightOverlay(show: $playerViewModel.showSpotlight, currentSpot: $playerViewModel.currentSpot)
     }
     
     private var customRecsSplash: some View {
@@ -221,12 +222,14 @@ struct PlayerView: View {
     }
     private var buttons: some View {
         HStack {
-            ActionButton(liked: false)
+            ActionButton(show: $playerViewModel.showSpotlight, currentSpot: $playerViewModel.currentSpot, liked: false)
+                .addSpotlight(2, shape: .circle, roundedRadius: 0, text: "Tap to skip")
             Spacer()
-            ActionButton()
+            ActionButton(show: $playerViewModel.showSpotlight, currentSpot: $playerViewModel.currentSpot)
             .offset(y: -16)
             Spacer()
-            ActionButton(liked: true)
+            ActionButton(show: $playerViewModel.showSpotlight, currentSpot: $playerViewModel.currentSpot, liked: true)
+                .addSpotlight(1, shape: .circle, roundedRadius: 0, text: "Tap to like/add to library")
         }
         .bold()
         .padding()
